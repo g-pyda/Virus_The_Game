@@ -3,6 +3,7 @@ status = ["sick", "vaccinated", "immune", "dead"]
 
 #when a player decides to put out their organ, we initialize a stack for this color -> cant initialize stacks with same color + control whether the card is immune or the organ died
 
+#or maybe card doesnt have to be a class?
 class Card:
 
     def __innit__(self, color, value):
