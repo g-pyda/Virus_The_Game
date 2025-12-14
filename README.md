@@ -1,10 +1,11 @@
 # Virus_The_Game
 
-## Initial setup
+## Initial
 
-1. Activate the python virtual environment
+1. Create the python virtual environment and activate it
 
 ```bash
+python -m venv venv
 venv\Scripts\activate
 ```
 
