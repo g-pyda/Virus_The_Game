@@ -18,8 +18,10 @@
         <div id="mother-messages"></div>
 
         <script>
-            console.log("JS loaded");
-            let motherUrl = "ws://127.0.0.1:8000/ws/game/";
+            let room = "test";
+            let ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+            let motherUrl = `${ws_scheme}://${window.location.host}/ws/game/${room}/`;
+            
             let motherSocket = new WebSocket(motherUrl);
             motherSocket.onopen = () => console.log("OPEN!");
             motherSocket.onmessage = e => console.log("MESSAGE:", e.data);

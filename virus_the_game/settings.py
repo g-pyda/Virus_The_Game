@@ -27,7 +27,10 @@ DATABASES = {
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
     },
 }
 
@@ -39,8 +42,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     LAN_HOST_IP,
-    # 'nginx'
 ]
+print("Allowed hosts:", ALLOWED_HOSTS)
 
 # STATIC_URL = '/static/'
 # STATIC_ROOT = BASE_DIR / 'static_root'

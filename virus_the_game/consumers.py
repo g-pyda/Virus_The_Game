@@ -5,12 +5,16 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         print("Connecting...")
-        self.room_group_name = 'test'
+        self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
+        self.room_group_name = f"{self.room_code}"
+
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
+
         await self.accept()
+        print("Player connected to", self.room_group_name)
         print("Connected.")
 
     async def disconnect(self, close_code):
