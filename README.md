@@ -1,16 +1,11 @@
 # Virus_The_Game
 
-## Initial
+## Initial setup (Docker)
 
-1. Create the python virtual environment and activate it
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-2. Install required libraries
+1. Open a terminal and ensure you are in the ```virus_the_game/``` directory.
+2. Run the following commands:
 
 ```bash
-pip install -r requirements.txt
+./venv/Scripts/activate
+daphne virus_the_game.asgi:application
 ```

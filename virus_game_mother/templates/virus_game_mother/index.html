@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Virus The Game - mother</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="">
+    </head>
+    <body>
+        <h1>Virus The Game - mother</h1>
+        <form id="mother-form">
+            <input type="text" id="mother-input" placeholder="Type a message...">
+            <button type="submit">Send</button>
+        </form>
+
+        <div id="mother-messages"></div>
+
+        <script>
+            console.log("JS loaded");
+            let motherUrl = "ws://127.0.0.1:8000/ws/game/";
+            let motherSocket = new WebSocket(motherUrl);
+            motherSocket.onopen = () => console.log("OPEN!");
+            motherSocket.onmessage = e => console.log("MESSAGE:", e.data);
+            motherSocket.onerror = e => console.log("ERROR", e);
+            motherSocket.onclose = e => console.log("CLOSED", e);
+
+            motherSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log('Message from server: ', data);
+
+                if (data.type === 'chat') {
+                    let messagesDiv = document.getElementById('mother-messages');
+                    let messageElem = document.createElement('div');
+                    messageElem.textContent = data.message;
+                    messagesDiv.appendChild(messageElem);
+                }
+            };
+
+            let form = document.getElementById('mother-form');
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                let input = document.getElementById('mother-input');
+                let message = input.value;
+                motherSocket.send(JSON.stringify({
+                    'message': message
+                }));
+                input.value = '';
+            };
+        </script>
+
+    </body>
+</html>
