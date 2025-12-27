@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 colors = ["red", "green", "blue", "yellow", "rainbow"]
-status = ["sick", "vaccinated", "immune", "dead"]
+status = ["healthy", "sick", "vaccinated", "immune", "dead"]
 
 #when a player decides to put out their organ, we initialize a stack for this color -> cant initialize stacks with same color + control whether the card is immune or the organ died
 
@@ -52,10 +52,7 @@ class Stack:
 
     
 
-
-
-
 class SpecialCard:
-    pass
+    pass #to implement later; they will do ✨something✨
 
 
