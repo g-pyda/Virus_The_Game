@@ -8,7 +8,6 @@ status = ["healthy", "sick", "vaccinated", "immune", "dead"]
 #or maybe card doesnt have to be a class?
 @dataclass
 class Card:
-
     color: str
     value: int #where for value: 1 is vaccine, -1 is virus, 0 is an organ; do we want it to bt an enum?
 
