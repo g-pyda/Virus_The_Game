@@ -25,7 +25,10 @@ I would provide the players with buttons what they can do, not make them type it
 
 ## NEXT STEPS
 
+
 1) function to initialize deck with proper amount of each type of card (currently we're ignoring the rainbow cards so that also needs to be solved but I don't think it's a priority)
 2) game instance should be done (starting, adding players, initializing deck, dealing cards)
 3) turn implementation + move attempt validation
 4) special cards need to be implemented
+
+there also missing part that need to be implemented, they are marked with the key word TOBEDONE 
