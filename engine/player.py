@@ -64,7 +64,6 @@ class Player:
                     return card #return the chosen card but im not sure how to implement it properly TOBEDONE
             raise ValueError("Invalid card choice!")
 
-
     #actions on stacks/cards laid out
     def add_card_to_stack(self, stack: Stack, card: Card):
         stack.add_card(card)
