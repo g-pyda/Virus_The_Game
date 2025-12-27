@@ -14,6 +14,7 @@ class Player:
     max_on_hand = 3
 
     def __init__(self, name):
+        self.id = id(self)  # unique identifier
         self.name = name
         self.on_hand = [] #list of cards on hand
         self.laid_out = [] #list of stacks initiated with organ laid on the table
