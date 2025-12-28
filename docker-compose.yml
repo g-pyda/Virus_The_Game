@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    container_name: game_server
+    command: uvicorn virus_the_game.asgi:application --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=virus_the_game.settings
+
+  redis:
+    image: redis:7
+    container_name: redis_server
+    ports:
+      - "6379:6379"

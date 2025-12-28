@@ -1,2 +1,6 @@
 Django
 python-dotenv
+dj-database-url
+uvicorn[standard]
+channels
+channels-redis
