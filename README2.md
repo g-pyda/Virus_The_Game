@@ -4,7 +4,8 @@
 Be the first player to have **4 healthy organs** laid out in front of you.
 
 An organ counts as healthy if it is:
-- **Untouched**, or
+- **Untouched**,
+- **Vaccinated**, or
 - **Immune** (has received two vaccines)
 
 Dead organs do **not** count and are removed from play.
@@ -38,16 +39,15 @@ The deck contains the following types of cards:
 1. Shuffle the deck.
 2. Deal **3 cards** to each player.
 3. Players keep their hands secret.
-4. Choose a starting player.
+4. A starting player is the youngest one or the winner of the previous round.
 
 ---
 
 ## Turn Structure
 On your turn:
 
-1. **Play one card** from your hand (optional).
-2. **Discard any number of cards** from your hand (optional).
-3. **Draw cards** until you have **3 cards** in hand.
+1. **Play one card** from your hand, or **discard any number of cards** from your hand
+2. **Draw cards** until you have **3 cards** in hand.
 
 You may not exceed 3 cards in hand at the end of your turn.
 
@@ -63,7 +63,7 @@ You may not exceed 3 cards in hand at the end of your turn.
 ---
 
 ### Playing a Virus
-- A virus must match the **color** of the target organ (or be rainbow).
+- A virus must match the **color** of the target organ (or be rainbow). You can place a virus of any color on a rainbow organ.
 - You may target:
   - Your own organs
   - Another player’s organs
@@ -77,7 +77,7 @@ You may not exceed 3 cards in hand at the end of your turn.
 ---
 
 ### Playing a Vaccine
-- A vaccine must match the **color** of the target organ (or be rainbow).
+- A vaccine must match the **color** of the target organ (or be rainbow). You can place a vaccine of any color on a rainbow organ.
 - You may only target your own organs.
 
 **Effects:**
@@ -122,3 +122,4 @@ Dead organs do not count and are removed as soon as they die.
 - Players are never required to play a card on their turn.
 - All effects are resolved immediately.
 - If multiple rules conflict, **special card rules take priority**.
+
