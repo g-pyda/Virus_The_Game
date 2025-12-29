@@ -1,6 +1,6 @@
 from typing import Optional
 from dataclasses import dataclass
-from engine.card import Card, Stack
+from card import Card, Stack
 
 @dataclass
 class Attempt:
@@ -78,4 +78,12 @@ class Player:
     def lay_out_organ(self, card: Card):
         new_stack = Stack(card)
         self.laid_out.append(new_stack)
-
+    
+    def check_win_condition(self):
+        for stack in self.laid_out:
+            if len(self.laid_out) < 4:
+                return False
+            if stack.status not in ["healthy", "immune", "vaccinated"]:
+                return False
+        self.status = 1
+        return True
