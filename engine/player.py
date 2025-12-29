@@ -4,7 +4,7 @@ from card import Card, Stack
 
 @dataclass
 class Attempt:
-    action: str                # "attack", "heal", "organ", "discard"
+    action: str                # "attack", "heal", "organ", "discard", "vaccinate"
     card: Optional['Card'] = None      # Card to play
     target_player: Optional['Player'] = None  # Needed for attack/steal
     target_stack: Optional['Stack'] = None    # Which stack to affect
@@ -33,8 +33,11 @@ class Player:
                 target_stack = None # for now, , TOBEDONE or its not needed? player can only have one stack per color
                 return Attempt(action="attack", card=card_to_play, target_player=target_player, target_stack=target_stack)
 
-            case "heal": #add vaccine to a card or heal a virus
-
+            case "vaccinate": #add vaccine to a healthy card
+                card_to_play = self.choose_card_from_hand(1) #vaccine card
+                return Attempt(action="vaccinate", card=card_to_play)
+            
+            case "heal": #heal a virus
                 card_to_play = self.choose_card_from_hand(1) #vaccine card
                 return Attempt(action="heal", card=card_to_play)
 
@@ -43,6 +46,9 @@ class Player:
                 return Attempt(action="organ", card=card_to_play)
 
             case "discard":
+                amount = input("Specify how many cards you want to discard: ")
+
+                
                 # how many cards you want to discard and which ones - TO BE IMPLEMENTED, TOBEDONE
                 discard_cards = [] #list of cards to discard
                 return Attempt(action="discard", discard_cards=discard_cards)
@@ -68,9 +74,12 @@ class Player:
     #actions on stacks/cards laid out
     def add_card_to_stack(self, stack: Stack, card: Card):
         stack.add_card(card)
-
+    # if organ dies, remove the stack, move to discard pile handled in game.py
         if stack.status == "dead":
             self.laid_out.remove(stack)
+    
+    def remove_card_from_stack(self, stack: Stack, card: Card):
+        stack.remove_card(card)
 
     def remove_stack(self, stack: Stack):
         self.laid_out.remove(stack)
@@ -80,9 +89,9 @@ class Player:
         self.laid_out.append(new_stack)
     
     def check_win_condition(self):
+        if len(self.laid_out) < 4:
+            return False
         for stack in self.laid_out:
-            if len(self.laid_out) < 4:
-                return False
             if stack.status not in ["healthy", "immune", "vaccinated"]:
                 return False
         self.status = 1

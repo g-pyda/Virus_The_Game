@@ -61,13 +61,11 @@ class Game:
         self.players.remove(player)
         self.players_number = len(self.players)
     
-    def get_current_player(self) -> Player:
-        return self.players[self.index_of_current_player]
-    
     # card handling
     def draw_card_for_player(self, player: Player):
         card = self.deck.draw_card()
         player.on_hand.append(card)
+        self.deck.cards.remove(card)
 
     def discard_card_from_player(self, player: Player, card: Card):
         player.on_hand.remove(card)
@@ -80,8 +78,44 @@ class Game:
             return self.players[self.index_of_current_player]
         return None
 
-    def move(self, player: Player, attempt):
-        pass #to be implemented later
+    def resolve_attempt(self, player: Player, attempt):
+        match attempt.action:
+            case "attack":
+                #needs to be implemented properly later TOBEDONE, here handling the removal of virus card from target stack 
+                player.add_card_to_stack(attempt.target_stack, attempt.card)
+                player.on_hand.remove(attempt.card)
+
+            case "heal":
+                if attempt.target_stack is None:
+                    raise ValueError("No target stack specified for healing/vaccinating!")
+                if attempt.target_stack.color != attempt.card.color:
+                    raise ValueError("Card color does not match stack color!")
+                if attempt.target_stack.status == "immune":
+                    raise ValueError("Stack is already immune!")
+                player.add_card_to_stack(attempt.target_stack, attempt.card)
+                if attempt.target_stack.status == "healthy": # it means the virus was removed by vaccine - both go to discard
+                    self.deck.discard_card(attempt.card) # discard vaccine
+                    player.on_hand.remove(attempt.card) # remove vaccine card from hand
+                    # remove virus card from stack and discard it
+                    virus_card = Card(color=attempt.target_stack.color, value=-1) 
+                    player.remove_card_from_stack(attempt.target_stack, virus_card)
+                    self.deck.discard_card(virus_card) # discard virus card but not sure if this is the right way TOBEDONE
+                else:
+                    player.on_hand.remove(attempt.card) # just remove vaccine card from hand
+
+
+            case "organ":
+                if any(stack.color == attempt.card.color for stack in player.laid_out):
+                    raise ValueError("You already have an organ of this color laid out!")
+                else:
+                    player.lay_out_organ(attempt.card)
+                    player.on_hand.remove(attempt.card)
+                    
+            case "discard":
+                for card in attempt.discard_cards:
+                    self.discard_card_from_player(player, card)
+            case _:
+                raise ValueError("Invalid action in attempt!")
 
     def start_game(self):
         if len(self.players) < 2:
@@ -95,11 +129,14 @@ class Game:
         while True:
             current_player = self.players[self.index_of_current_player]
             attempt = current_player.attempt_move()
-            # Check for a winner after the turn
+            self.resolve_attempt(current_player, attempt)
+
             winner = self.check_if_winner()
-            # For now, we just move to the next player
+            if winner: break
+            while current_player.cardson_hand < current_player.max_cards_on_hand:
+                self.draw_card_for_player(current_player)
+
             self.index_of_current_player = (self.index_of_current_player + 1) % self.players_number
-            # This is just a placeholder to prevent an infinite loop in this example
             break
 
 

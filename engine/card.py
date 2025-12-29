@@ -33,6 +33,14 @@ class Stack:
             self.stack_value += Card.value
         self.set_status()
 
+    def remove_card(self, Card):
+        if(self.color != Card.color):
+            raise TypeError("Wrong color!") 
+
+        else:
+            self.stack_value -= Card.value
+            self.set_status()
+
     def set_status(self):
         match self.stack_value:
             case 0:
