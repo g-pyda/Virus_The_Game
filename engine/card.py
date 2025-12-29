@@ -5,7 +5,7 @@ status = ["healthy", "sick", "vaccinated", "immune", "dead"]
 
 #when a player decides to put out their organ, we initialize a stack for this color -> cant initialize stacks with same color + control whether the card is immune or the organ died
 
-#or maybe card doesnt have to be a class?
+#or maybe card doesnt have to be a class? too late imo (chyba że chcę ci się)
 @dataclass
 class Card:
     color: str
