@@ -9,9 +9,14 @@ services:
       - redis
     environment:
       - DJANGO_SETTINGS_MODULE=virus_the_game.settings
+    volumes:
+      - sqlite_data:/app/data
 
   redis:
     image: redis:7
     container_name: redis_server
     ports:
       - "6379:6379"
+
+volumes:
+  sqlite_data:
