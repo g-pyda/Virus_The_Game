@@ -100,10 +100,11 @@ class Game:
                 player.add_card_to_stack(attempt.target_stack, attempt.card)
                 if attempt.target_stack.status == "healthy": # it means the virus was removed by vaccine - both go to discard
                     self.discard_card_from_player(player, attempt.card) # discard vaccine
-                    virus_card = Card(color=attempt.target_stack.color, value=-1) 
-                    self.discard_card_from_player(player, virus_card) # discard virus card but not sure if this is the right way TOBEDONE
+                    virus_card = next(card for card in attempt.target_stack.cards if card.value == -1)
+                    attempt.target_stack.cards.remove(virus_card)
+                    self.discard_pile.append(virus_card)
                 else:
-                    self.discard_card_from_player(player, attempt.card) # just remove vaccine card from hand
+                    self.discard_card_from_player(player, attempt.card) # discard vaccine card
 
 
             case "organ":
