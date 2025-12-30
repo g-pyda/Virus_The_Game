@@ -19,6 +19,7 @@ class Stack:
         if(Card.value != 0):
             raise TypeError("Your first card of the color has to be an organ!") 
         else:
+            self.cards = []
             self.stack_value = 0
             self.status = "healthy"
             self.color = Card.color
@@ -31,6 +32,7 @@ class Stack:
             raise ValueError("Card is immune. Nothing left to do.") 
         else:
             self.stack_value += Card.value
+            self.cards.append(Card)
         self.set_status()
 
     def remove_card(self, Card):
@@ -39,6 +41,7 @@ class Stack:
 
         else:
             self.stack_value -= Card.value
+            self.cards.remove(Card)
             self.set_status()
 
     def set_status(self):

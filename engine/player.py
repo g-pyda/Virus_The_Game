@@ -21,7 +21,7 @@ class Player:
         self.status = 0 #when status changes to 1 the player wins
 
 
-    def attempt_move(self):
+    def attempt_move(self): #DO PRZEBUDOWANIA BO INTERFEJS
         #information to choose what to do
         action = input("What action do you want to do? (attack/heal/organ/discard)") #later moved to UI
         match action:
@@ -30,7 +30,7 @@ class Player:
                 #implement attack which card which player + check if possible
                 card_to_play = self.choose_card_from_hand(-1) #virus card
                 target_player = None #for now, TOBEDONE
-                target_stack = None # for now, , TOBEDONE or its not needed? player can only have one stack per color
+                target_stack = None # for now, , TOBEDONE
                 return Attempt(action="attack", card=card_to_play, target_player=target_player, target_stack=target_stack)
 
             case "vaccinate": #add vaccine to a healthy card
@@ -46,10 +46,7 @@ class Player:
                 return Attempt(action="organ", card=card_to_play)
 
             case "discard":
-                amount = input("Specify how many cards you want to discard: ")
-
-                
-                # how many cards you want to discard and which ones - TO BE IMPLEMENTED, TOBEDONE
+                # how many cards you want to discard and which ones - TO BE IMPLEMENTED, TOBEDONE, UI
                 discard_cards = [] #list of cards to discard
                 return Attempt(action="discard", discard_cards=discard_cards)
             case _:
@@ -64,7 +61,7 @@ class Player:
         elif len(filtered_cards) == 1:
             return filtered_cards[0]
         else:
-            #later move to UI
+            #later moved to UI
             card_choice = input(f"Multiple cards available. Choose one: {filtered_cards}")
             for card in filtered_cards:
                 if str(card) == card_choice:
@@ -73,6 +70,7 @@ class Player:
 
     #actions on stacks/cards laid out
     def add_card_to_stack(self, stack: Stack, card: Card):
+        self.on_hand.remove(card)
         stack.add_card(card)
     # if organ dies, remove the stack, move to discard pile handled in game.py
         if stack.status == "dead":
@@ -87,6 +85,7 @@ class Player:
     def lay_out_organ(self, card: Card):
         new_stack = Stack(card)
         self.laid_out.append(new_stack)
+        self.on_hand.remove(card)
     
     def check_win_condition(self):
         if len(self.laid_out) < 4:

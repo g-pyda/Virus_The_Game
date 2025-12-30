@@ -1,4 +1,4 @@
-from card import Card
+from card import Card, Stack
 from player import Player
 import random
 
@@ -34,6 +34,7 @@ class Deck:
         self.cards.append(Card(color="rainbow", value=-1))
         for _ in range(4): self.cards.append(Card(color="rainbow", value=1))
         #append special cards later TOBEDONE
+        ###
         #shuffle the deck at the end
         random.shuffle(self.cards)
         print(len(self.cards)) #for testing purposes
@@ -65,11 +66,14 @@ class Game:
     def draw_card_for_player(self, player: Player):
         card = self.deck.draw_card()
         player.on_hand.append(card)
-        self.deck.cards.remove(card)
 
     def discard_card_from_player(self, player: Player, card: Card):
         player.on_hand.remove(card)
         self.deck.discard_card(card)
+    
+    def discard_card_from_stack(self, player: Player, stack: Stack):
+        card = stack.cards.pop()
+        self.discard_card_from_player(player, card)
 
     # game flow
     def check_if_winner(self):
@@ -85,31 +89,29 @@ class Game:
                 player.add_card_to_stack(attempt.target_stack, attempt.card)
                 player.on_hand.remove(attempt.card)
 
-            case "heal":
+            case "heal": #handles rainbow
                 if attempt.target_stack is None:
                     raise ValueError("No target stack specified for healing/vaccinating!")
-                if attempt.target_stack.color != attempt.card.color:
-                    raise ValueError("Card color does not match stack color!")
+                if (attempt.target_stack.color != "rainbow" and attempt.card.color != "rainbow"):
+                    if attempt.target_stack.color != attempt.card.color:
+                        raise ValueError("Card color does not match stack color!")
                 if attempt.target_stack.status == "immune":
                     raise ValueError("Stack is already immune!")
                 player.add_card_to_stack(attempt.target_stack, attempt.card)
                 if attempt.target_stack.status == "healthy": # it means the virus was removed by vaccine - both go to discard
-                    self.deck.discard_card(attempt.card) # discard vaccine
-                    player.on_hand.remove(attempt.card) # remove vaccine card from hand
-                    # remove virus card from stack and discard it
+                    self.discard_card_from_player(player, attempt.card) # discard vaccine
                     virus_card = Card(color=attempt.target_stack.color, value=-1) 
-                    player.remove_card_from_stack(attempt.target_stack, virus_card)
-                    self.deck.discard_card(virus_card) # discard virus card but not sure if this is the right way TOBEDONE
+                    self.discard_card_from_player(player, virus_card) # discard virus card but not sure if this is the right way TOBEDONE
                 else:
-                    player.on_hand.remove(attempt.card) # just remove vaccine card from hand
+                    self.discard_card_from_player(player, attempt.card) # just remove vaccine card from hand
 
 
             case "organ":
-                if any(stack.color == attempt.card.color for stack in player.laid_out):
-                    raise ValueError("You already have an organ of this color laid out!")
+                if attempt.card.color != "rainbow":
+                    if any(stack.color == attempt.card.color for stack in player.laid_out):
+                        raise ValueError("You already have an organ of this color laid out!")
                 else:
                     player.lay_out_organ(attempt.card)
-                    player.on_hand.remove(attempt.card)
                     
             case "discard":
                 for card in attempt.discard_cards:
