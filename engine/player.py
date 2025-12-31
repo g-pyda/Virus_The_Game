@@ -70,13 +70,13 @@ class Player:
 
     #actions on stacks/cards laid out
     def add_card_to_stack(self, stack: Stack, card: Card):
-        self.on_hand.remove(card)
+        #self.on_hand.remove(card)
         stack.add_card(card)
     # if organ dies, remove the stack, move to discard pile handled in game.py
         if stack.status == "dead":
             self.laid_out.remove(stack)
-            return False
-        return True
+            return True
+        return False
     
     def remove_card_from_stack(self, stack: Stack, card: Card):
         stack.remove_card(card)

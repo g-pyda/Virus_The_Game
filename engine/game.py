@@ -85,9 +85,20 @@ class Game:
     def resolve_attempt(self, player: Player, attempt):
         match attempt.action:
             case "attack":
-                #needs to be implemented properly later TOBEDONE, here handling the removal of virus card from target stack 
-                player.add_card_to_stack(attempt.target_stack, attempt.card)
+                if attempt.target_player is None or attempt.target_stack is None:
+                    raise ValueError("No target player or stack specified for attack!")
+                if (attempt.target_stack.color != "rainbow" and attempt.card.color != "rainbow"):
+                    if attempt.target_stack.color != attempt.card.color:
+                        raise ValueError("Card color does not match stack color!")
+                if attempt.target_stack.status == "immune":
+                    raise ValueError("Cannot attack this stack!")
+                isdead = attempt.target_player.add_card_to_stack(attempt.target_stack, attempt.card)
                 player.on_hand.remove(attempt.card)
+                if isdead:
+                    #move the stack's cards to discard pile
+                    attempt.target_player.remove_stack(attempt.target_stack)
+                    for card in attempt.target_stack.cards:
+                        self.deck.discard_card(card)
 
             case "heal": #handles rainbow
                 if attempt.target_stack is None:
@@ -99,13 +110,13 @@ class Game:
                     raise ValueError("Stack is already immune!")
                 player.add_card_to_stack(attempt.target_stack, attempt.card)
                 if attempt.target_stack.status == "healthy": # it means the virus was removed by vaccine - both go to discard
-                    self.discard_card_from_player(player, attempt.card) # discard vaccine
                     attempt.target_stack.cards.remove(attempt.card) # remove vaccine from stack
                     virus_card = next(card for card in attempt.target_stack.cards if card.value == -1)
                     attempt.target_stack.cards.remove(virus_card)
                     self.deck.discard_card(virus_card)
                 else:
                     self.deck.discard_card(attempt.card) # discard vaccine card
+                player.on_hand.remove(attempt.card) # remove from hand, NOT handled in add_card_to_stack
 
 
             case "organ":
