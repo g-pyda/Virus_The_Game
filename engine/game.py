@@ -130,6 +130,13 @@ class Game:
             case "discard":
                 for card in attempt.discard_cards:
                     self.discard_card_from_player(player, card)
+            case "special":
+                #check if possible
+                # match attempt.card.type:
+                #attempt.card.use_card() <- here will be implemented everything related to special cards, including validation
+                self.discard_card_from_player(player, attempt.card)
+                #to be implemented later
+                pass
             case _:
                 raise ValueError("Invalid action in attempt!")
 
