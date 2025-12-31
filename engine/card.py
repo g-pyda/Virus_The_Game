@@ -66,12 +66,12 @@ class Stack:
 class SpecialCard:
     card_types = ["organ swap", "thieft", "body swap", "latex glove", "epidemy"]
     value = 100 #to filter later by that
-    #actions for special cards
+
     def __init__(self, card_type: str):
         if card_type not in self.card_types:
             raise ValueError("Invalid special card type!")
         self.card_type = card_type
-    #actions
+
     def use_card(self):
         match self.card_type:
             case "organ swap":

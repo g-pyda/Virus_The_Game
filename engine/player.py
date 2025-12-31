@@ -49,6 +49,7 @@ class Player:
                 # how many cards you want to discard and which ones - TOBEDONE, FRONTEND
                 discard_cards = [] #list of cards to discard
                 return Attempt(action="discard", discard_cards=discard_cards)
+            
             case "special":
                 card_to_play = self.choose_card_from_hand(100) #special card
                 return Attempt(action="special", card=card_to_play)
