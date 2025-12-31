@@ -2,8 +2,6 @@
 
 ## Cards:
 
-WHAT IF CARDS WERE DICTIONARY NOT DATACLASS? - not sure about it, please consider it
-
 class *Card* - 58 basic cards; dataclass
 class *SpecialCard* - 10 special cards, we'll have to implement how they work
 
