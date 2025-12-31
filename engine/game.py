@@ -147,12 +147,15 @@ class Game:
             self.resolve_attempt(current_player, attempt)
 
             winner = self.check_if_winner()
-            if winner: break
-            while current_player.cardson_hand < current_player.max_cards_on_hand:
+            if winner: 
+                print(f"Player {winner.name} has won the game!") #later moved to UI
+                break
+
+            while current_player.cards.on_hand < current_player.max_cards_on_hand:
                 self.draw_card_for_player(current_player)
 
             self.index_of_current_player = (self.index_of_current_player + 1) % self.players_number
-            break
+            break #remove later, currently to not end up in infinite loop
 
 
 

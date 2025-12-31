@@ -29,8 +29,8 @@ class Player:
             case "attack":
                 #implement attack which card which player + check if possible
                 card_to_play = self.choose_card_from_hand(-1) #virus card
-                target_player = None #for now, TOBEDONE
-                target_stack = None # for now, , TOBEDONE
+                target_player = None #for now, TOBEDONE FRONTEND
+                target_stack = None # for now, , TOBEDONE FRONTEND
                 return Attempt(action="attack", card=card_to_play, target_player=target_player, target_stack=target_stack)
 
             case "vaccinate": #add vaccine to a healthy card
@@ -46,7 +46,7 @@ class Player:
                 return Attempt(action="organ", card=card_to_play)
 
             case "discard":
-                # how many cards you want to discard and which ones - TO BE IMPLEMENTED, TOBEDONE, UI
+                # how many cards you want to discard and which ones - TOBEDONE, FRONTEND
                 discard_cards = [] #list of cards to discard
                 return Attempt(action="discard", discard_cards=discard_cards)
             case _:
@@ -61,7 +61,7 @@ class Player:
         elif len(filtered_cards) == 1:
             return filtered_cards[0]
         else:
-            #later moved to UI
+            #for now , TOBEDONE FRONTEND
             card_choice = input(f"Multiple cards available. Choose one: {filtered_cards}")
             for card in filtered_cards:
                 if str(card) == card_choice:
