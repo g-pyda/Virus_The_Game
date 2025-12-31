@@ -75,6 +75,8 @@ class Player:
     # if organ dies, remove the stack, move to discard pile handled in game.py
         if stack.status == "dead":
             self.laid_out.remove(stack)
+            return False
+        return True
     
     def remove_card_from_stack(self, stack: Stack, card: Card):
         stack.remove_card(card)
