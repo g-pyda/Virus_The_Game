@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from wsgiref import types
 
 colors = ["red", "green", "blue", "yellow", "rainbow"]
 status = ["healthy", "sick", "vaccinated", "immune", "dead"]
@@ -63,6 +64,26 @@ class Stack:
     
 
 class SpecialCard:
-    pass #to implement later; they will do ✨something✨
+    card_types = ["organ swap", "thieft", "body swap", "latex glove", "epidemy"]
+    #actions for special cards
+    def __init__(self, card_type: str):
+        if card_type not in self.card_types:
+            raise ValueError("Invalid special card type!")
+        self.card_type = card_type
+    #actions
+    def use_card(self):
+        match self.card_type:
+            case "organ swap":
+                pass
+            case "thieft":
+                pass 
+            case "body swap":
+                pass
+            case "latex glove":
+                pass
+            case "epidemy":
+                pass
+    #to implement later; they will do ✨something✨
+
 
 
