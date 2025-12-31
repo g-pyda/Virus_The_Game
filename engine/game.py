@@ -48,6 +48,7 @@ class Game:
         self.index_of_current_player = 0
         self.players_number = 0
         self.winner = None
+        self.turn_number = 0
     
     # players handling
     def add_player(self, player: Player):
@@ -142,10 +143,11 @@ class Game:
                 self.draw_card_for_player(player)
         #game starts
         while True:
+            self.turn_number += 1
             current_player = self.players[self.index_of_current_player]
             attempt = current_player.attempt_move()
             self.resolve_attempt(current_player, attempt)
-
+            
             winner = self.check_if_winner()
             if winner: 
                 print(f"Player {winner.name} has won the game!") #later moved to UI
