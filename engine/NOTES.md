@@ -30,6 +30,7 @@ I would provide the players with buttons what they can do, not make them type it
 2) TOBEDONE need to be implemented where neccessary (left where front-end)
 3) special cards need to be implemented
 4) FUSE with with front-end (remove inputs and make them in ui)
+6) "raise ValueError" needs to be replaced with sth to ask to choose again
  
 
 there also missing part that need to be implemented, they are marked with the key word TOBEDONE, FRONTEND
