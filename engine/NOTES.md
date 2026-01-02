@@ -24,11 +24,13 @@ I would provide the players with buttons what they can do, not make them type it
 ## NEXT STEPS
 
 
-1) special cards need to be implemented - epidemy
+1) special cards implementation needs to be checked 
 2) special cards need to be added to the deck
 3) TOBEDONE need to be implemented where neccessary (left where front-end)
+4) inputs for targets need to be implemented (but i guess leave it to frontend?)
 5) FUSE with with front-end (remove inputs and make them in ui)
 6) "raise ValueError" needs to be replaced with sth to ask to choose again
+7) tests need to be done
  
 
 there also missing part that need to be implemented, they are marked with the key words TOBEDONE, FRONTEND
