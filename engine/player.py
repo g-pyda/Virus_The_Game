@@ -78,7 +78,8 @@ class Player:
                     return Attempt(action="special", card=card_to_play)
                 
                 elif card_to_play.card_type == "epidemy":
-                    # i can choose 0 - 4 viruses from my stacks to give them to other players - TOBEDONE
+                    # player can choose 0 - 4 viruses from their stacks to give them to other players - TOBEDONE
+                    # they have to choose how many and which ones and to whom to give them - TOBEDONE
                     return Attempt(action="special", card=card_to_play)
             case _:
                 raise ValueError("Invalid action chosen!")
