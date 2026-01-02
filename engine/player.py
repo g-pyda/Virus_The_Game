@@ -23,8 +23,10 @@ class EpidemyAttempt:
     action: str                # "epidemy"
     player: 'Player'
     virus_cards: list['Card']  # List of virus cards to give away 
+    player_stacks: list['Stack']  # List of player stacks to remove virus cards from
+    target_stacks: list['Stack']  # List of target stacks to receive the virus cards
     target_players: list['Player']  # List of target players to receive the virus cards
-    #virus cards index corresponds to target players index
+    #virus cards index corresponds to target players index and target stacks index
 
 class Player:
     max_on_hand = 3
@@ -88,7 +90,11 @@ class Player:
                 elif card_to_play.card_type == "epidemy":
                     # player can choose 0 - 4 viruses from their stacks to give them to other players - TOBEDONE
                     # they have to choose how many and which ones and to whom to give them - TOBEDONE
-                    return Attempt(action="special", card=card_to_play)
+                    virus_cards = [] #list of virus cards to give away - TOBEDONE FRONTEND
+                    target_stacks = [] #list of target stacks to receive the virus cards - TOBEDONE FRONTEND
+                    target_players = [] #list of target players to receive the virus cards - TOBEDONE FRONTEND
+                    player_stacks = [] #list of player's stacks to remove virus cards from - TOBEDONE FRONTEND
+                    return EpidemyAttempt(action="epidemy", player=self, virus_cards=virus_cards, target_stacks=target_stacks, player_stacks=player_stacks, target_players=target_players)
             case _:
                 raise ValueError("Invalid action chosen!")
 

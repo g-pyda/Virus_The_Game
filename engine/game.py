@@ -160,7 +160,20 @@ class Game:
                             for card in player.on_hand:
                                 self.discard_card_from_player(player, card)
                     case "epidemy":
-                        pass        
+                        for i in range(len(attempt.virus_cards)):
+                            virus_card = attempt.virus_cards[i]
+                            #target_player = attempt.target_players[i] #not used but i think it should be used ? TOBEDONE
+                            target_stack = attempt.target_stacks[i]
+                            if virus_card.value != -1:
+                                raise ValueError("Only virus cards can be given away in an epidemy!")
+                            if target_stack.status != "healthy":
+                                raise ValueError("You can only give a virus to a healthy stack!")
+                            if target_stack.color != "rainbow":
+                                if virus_card.color != "rainbow":
+                                    if target_stack.color != virus_card.color:
+                                        raise ValueError("Virus card color does not match target stack color!")
+                            attempt.player.remove_card_from_stack(attempt.player_stacks[i], virus_card)
+                            target_stack.add_card(virus_card)
                     case _:
                         raise ValueError("Invalid special card type!")
                 self.deck.discard_card(attempt.card)
