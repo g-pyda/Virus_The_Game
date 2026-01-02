@@ -132,11 +132,39 @@ class Game:
                     self.discard_card_from_player(player, card)
             case "special":
                 #check if possible
-                # match attempt.card.type:
-                #attempt.card.use_card() <- here will be implemented everything related to special cards, including validation
-                self.discard_card_from_player(player, attempt.card)
-                #to be implemented later
-                pass
+                match attempt.card.card_type:
+                    case "organ swap":
+                        if attempt.target_stack.color != attempt.stack.color and attempt.target_stack.color != "rainbow" and attempt.stack.color != "rainbow" and (attempt.target_stack.color in [stack.color for stack in player.laid_out] or attempt.stack.color in [stack.color for stack in attempt.target_player.laid_out]):
+                            raise ValueError("Cannot swap these organs!")
+                        attempt.stack, attempt.target_stack = attempt.target_stack, attempt.stack
+                        #swap stacks between players but im not sure if it works like i want it to do
+
+                    case "thieft":
+                        if attempt.target_stack.status == "immune":
+                            raise ValueError("Cannot steal from an immune stack!")
+                        if len(attempt.target_stack.cards) == 0:
+                            raise ValueError("Target stack has no cards to steal!")
+                        if attempt.target_stack.color in [stack.color for stack in player.laid_out]:
+                            raise ValueError("You already have an organ of this color laid out!")
+                        stolen_card = attempt.target_stack
+                        attempt.target_player.remove_stack(attempt.target_stack)
+                        player.laid_out.append(stolen_card)
+                        #chyba jest git, ale wszystkie karty specjalne pisałam z gorączką więc do sprawdzenia
+                        
+                    case "body swap": #there are no restrictions on body swap 
+                        attempt.player.laid_out, attempt.target_player.laid_out = attempt.target_player.laid_out, attempt.player.laid_out
+                        #swap all stacks between players
+                        
+                    case "latex glove":
+                        for player in self.players:
+                            for card in player.on_hand:
+                                self.discard_card_from_player(player, card)
+                    case "epidemy":
+                        pass        
+                    case _:
+                        raise ValueError("Invalid special card type!")
+                self.deck.discard_card(attempt.card)
+                player.on_hand.remove(attempt.card)
             case _:
                 raise ValueError("Invalid action in attempt!")
 
@@ -152,13 +180,14 @@ class Game:
         while True:
             self.turn_number += 1
             current_player = self.players[self.index_of_current_player]
-            attempt = current_player.attempt_move()
-            self.resolve_attempt(current_player, attempt)
-            
-            winner = self.check_if_winner()
-            if winner: 
-                print(f"Player {winner.name} has won the game!") #later moved to UI
-                break
+            if current_player.on_hand != 0:
+                attempt = current_player.attempt_move()
+                self.resolve_attempt(current_player, attempt)
+
+                winner = self.check_if_winner()
+                if winner: 
+                    print(f"Player {winner.name} has won the game!") #later moved to UI
+                    break
 
             while current_player.cards.on_hand < current_player.max_cards_on_hand:
                 self.draw_card_for_player(current_player)

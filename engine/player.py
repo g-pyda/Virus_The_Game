@@ -10,6 +10,14 @@ class Attempt:
     target_stack: Optional['Stack'] = None    # Which stack to affect
     discard_cards: Optional[list['Card']] = None  # For discard action
 
+@dataclass
+class SwapThiefAttempt:
+    action: str                # "organ swap", "body swap" , "thieft"
+    player: 'Player'
+    stack: Optional['Stack'] = None
+    target_player: 'Player'
+    target_stack: Optional['Stack'] = None
+
 class Player:
     max_on_hand = 3
 
@@ -52,7 +60,26 @@ class Player:
             
             case "special":
                 card_to_play = self.choose_card_from_hand(100) #special card
-                return Attempt(action="special", card=card_to_play)
+                if card_to_play is None:
+                    raise ValueError("No special cards on hand!")
+                
+                if card_to_play.card_type in ["organ swap", "body swap"]:
+                    stack = None #for now, TOBEDONE FRONTEND
+                    target_player = None #for now, TOBEDONE FRONTEND
+                    target_stack = None # for now, , TOBEDONE FRONTEND
+                    return SwapThiefAttempt(action=card_to_play.card_type, player=self, stack=stack, target_player=target_player, target_stack=target_stack)
+                
+                elif card_to_play.card_type == "thieft":
+                    target_player = None #for now, TOBEDONE FRONTEND
+                    target_stack = None # for now, , TOBEDONE FRONTEND
+                    return SwapThiefAttempt(action="thieft", player=self, target_player=target_player, target_stack=target_stack)
+                
+                elif card_to_play.card_type == "latex glove":
+                    return Attempt(action="special", card=card_to_play)
+                
+                elif card_to_play.card_type == "epidemy":
+                    # i can choose 0 - 4 viruses from my stacks to give them to other players - TOBEDONE
+                    return Attempt(action="special", card=card_to_play)
             case _:
                 raise ValueError("Invalid action chosen!")
 

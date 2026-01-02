@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from wsgiref import types
+from game import Game
 
 colors = ["red", "green", "blue", "yellow", "rainbow"]
 status = ["healthy", "sick", "vaccinated", "immune", "dead"]
@@ -72,18 +72,6 @@ class SpecialCard:
             raise ValueError("Invalid special card type!")
         self.card_type = card_type
 
-    def use_card(self):
-        match self.card_type:
-            case "organ swap":
-                pass
-            case "thieft":
-                pass 
-            case "body swap":
-                pass
-            case "latex glove":
-                pass
-            case "epidemy":
-                pass
     #to implement later; they will do ✨something✨
 
 
