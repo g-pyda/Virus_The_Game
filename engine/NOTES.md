@@ -24,11 +24,11 @@ I would provide the players with buttons what they can do, not make them type it
 ## NEXT STEPS
 
 
-1) discard any amount of cards in player.attempt_move -> "discard" (but I think it will be done in UI)
-2) TOBEDONE need to be implemented where neccessary (left where front-end)
-3) special cards need to be implemented
-4) FUSE with with front-end (remove inputs and make them in ui)
+1) special cards need to be implemented - epidemy
+2) special cards need to be added to the deck
+3) TOBEDONE need to be implemented where neccessary (left where front-end)
+5) FUSE with with front-end (remove inputs and make them in ui)
 6) "raise ValueError" needs to be replaced with sth to ask to choose again
  
 
-there also missing part that need to be implemented, they are marked with the key word TOBEDONE, FRONTEND
+there also missing part that need to be implemented, they are marked with the key words TOBEDONE, FRONTEND
