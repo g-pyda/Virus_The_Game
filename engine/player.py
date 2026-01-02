@@ -18,6 +18,14 @@ class SwapThiefAttempt:
     target_player: 'Player'
     target_stack: Optional['Stack'] = None
 
+@dataclass
+class EpidemyAttempt:
+    action: str                # "epidemy"
+    player: 'Player'
+    virus_cards: list['Card']  # List of virus cards to give away 
+    target_players: list['Player']  # List of target players to receive the virus cards
+    #virus cards index corresponds to target players index
+
 class Player:
     max_on_hand = 3
 
