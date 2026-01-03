@@ -1,4 +1,4 @@
-from card import Card, Stack
+from card import Card, Stack, SpecialCard
 from player import Player
 import random
 
@@ -33,8 +33,13 @@ class Deck:
         self.cards.append(Card(color="rainbow", value=0))
         self.cards.append(Card(color="rainbow", value=-1))
         for _ in range(4): self.cards.append(Card(color="rainbow", value=1))
-        #append special cards later TOBEDONE
-        ###
+        #append special cards
+        for _ in range(3): self.cards.append(SpecialCard(card_type="organ swap"))
+        self.cards.append(SpecialCard(card_type="body swap"))
+        for _ in range(3): self.cards.append(SpecialCard(card_type="thieft"))
+        self.cards.append(SpecialCard(card_type="latex glove"))
+        for _ in range(2): self.cards.append(SpecialCard(card_type="epidemy"))
+
         #shuffle the deck at the end
         random.shuffle(self.cards)
         print(len(self.cards)) #for testing purposes
