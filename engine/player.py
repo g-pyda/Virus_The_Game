@@ -97,21 +97,22 @@ class Player:
             case _:
                 raise ValueError("Invalid action chosen!")
 
+    # ------- probably redundant but left FOR NOW -------
 
-    def choose_card_from_hand(self, filter_value: int):
-        #filter: 1 = vaccine, -1 = virus, 0 = organ
-        filtered_cards = [card for card in self.on_hand if card.value == filter_value]
-        if len(filtered_cards) == 0:
-            raise ValueError("No cards of the requested type on hand!")
-        elif len(filtered_cards) == 1:
-            return filtered_cards[0]
-        else:
-            #for now , TOBEDONE FRONTEND
-            card_choice = input(f"Multiple cards available. Choose one: {filtered_cards}")
-            for card in filtered_cards:
-                if str(card) == card_choice:
-                    return card #return the chosen card but im not sure how to implement it properly TOBEDONE
-            raise ValueError("Invalid card choice!")
+    #def choose_card_from_hand(self, filter_value: int):
+    #    #filter: 1 = vaccine, -1 = virus, 0 = organ
+    #    filtered_cards = [card for card in self.on_hand if card.value == filter_value]
+    #    if len(filtered_cards) == 0:
+    #        raise ValueError("No cards of the requested type on hand!")
+    #    elif len(filtered_cards) == 1:
+    #        return filtered_cards[0]
+    #    else:
+    #        #for now , TOBEDONE FRONTEND
+    #        card_choice = input(f"Multiple cards available. Choose one: {filtered_cards}")
+    #        for card in filtered_cards:
+    #            if str(card) == card_choice:
+    #                return card #return the chosen card but im not sure how to implement it properly TOBEDONE
+    #        raise ValueError("Invalid card choice!")
 
     #actions on stacks/cards laid out
     def add_card_to_stack(self, stack: Stack, card: Card):

@@ -76,17 +76,12 @@ class Game:
     def discard_card_from_player(self, player: Player, card: Card):
         player.on_hand.remove(card)
         self.deck.discard_card(card)
-    
-    def discard_card_from_stack(self, player: Player, stack: Stack):
-        card = stack.cards.pop()
-        self.discard_card_from_player(player, card)
 
     # game flow
     def check_if_winner(self):
         if self.players[self.index_of_current_player].check_win_condition():
-            self.winner = self.players[self.index_of_current_player]
-            return self.players[self.index_of_current_player]
-        return None
+            return True
+        return False
 
     def resolve_attempt(self, player: Player, attempt):
         match attempt.action:
@@ -202,9 +197,9 @@ class Game:
                 attempt = current_player.attempt_move()
                 self.resolve_attempt(current_player, attempt)
 
-                winner = self.check_if_winner()
-                if winner: 
-                    print(f"Player {winner.name} has won the game!") #later moved to UI
+                is_there_winner = self.check_if_winner()
+                if is_there_winner: 
+                    #current_player is the winner
                     break
 
             while current_player.cards.on_hand < current_player.max_cards_on_hand:

@@ -4,16 +4,16 @@
 
 - ```Player``` class is supposed to be connected to the database player instance by id, therefore it has to be provided in constructor (more in Game section)
 
-- the data for ```attempt``` will be in dictionary form, create the structure of your choice, the API will adjust
+- ?✅? the data for ```attempt``` will be in dictionary form, create the structure of your choice, the API will adjust -> DICT 
 
 - the attempt actions have to operate on specific cards and stacks, like choosse the specific vaccine in your hand and defining the specific organ to heal, so adjust the functions to do so (maybe add some kind of indexing in the deck?)
 
-- ```choose_card_from_hand``` - redundant function at this point, but may be left for now
+- ✅ ```choose_card_from_hand``` - redundant function at this point, but may be left for now -> COMMENTED
 
 
 ## Card class
 
-- add id field of a card - makes it easier in retrieving its characteristics from the game engine
+✅ - add id field of a card - makes it easier in retrieving its characteristics from the game engine 
 
 ## Deck class
 
@@ -43,8 +43,8 @@ return player's id and name (connection purposes)
 
 - ```draw_card_for_player``` - take id as input, return card info
 - ```discard_card_from_player``` - take card id and player id as input, return player id and card info
-- ```discard_card_from_stack``` - am I mistaken or this function is never used?
-- ```check_if_winner``` - better if if it would return bool value
+- ✅```discard_card_from_stack``` - am I mistaken or this function is never used? -> YEP, DELETED IT
+- ✅ ```check_if_winner``` - better if if it would return bool value -> RETURNS BOOL
 - ```resolve_attempt``` - after each successfull attempt, return a dictionary with result info, like player id, target player id, card id etc, leave errors as they are
 - ```start_game``` - this should only initialize the game (give out cards etc), do not perform the game loop
 - implement ```next_player``` method that changes the current player to the next and returns the id of new current player (very important in game flow!)

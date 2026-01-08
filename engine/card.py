@@ -11,6 +11,7 @@ status = ["healthy", "sick", "vaccinated", "immune", "dead"]
 class Card:
     color: str
     value: int #where for value: 1 is vaccine, -1 is virus, 0 is an organ; do we want it to bt an enum?
+    id: int #unique identifier for each card
 
 class Stack:
     #stack for a card (to add viruses or vaccines)
