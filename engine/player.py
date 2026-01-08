@@ -31,57 +31,56 @@ class EpidemyAttempt:
 class Player:
     max_on_hand = 3
 
-    def __init__(self, name):
-        self.id = id(self)  # unique identifier
+    def __init__(self, name, id_number):
+        self.id = id_number  # unique identifier from database
         self.name = name
         self.on_hand = [] #list of cards on hand
         self.laid_out = [] #list of stacks initiated with organ laid on the table
         self.status = 0 #when status changes to 1 the player wins
 
 
-    def attempt_move(self): #DO PRZEBUDOWANIA BO INTERFEJS
+    def attempt_move(self, attempt_info: dict): #attempt info will come from frontend
         #information to choose what to do
-        action = input("What action do you want to do? (attack/heal/organ/discard)") #later moved to UI
+        action = attempt_info.get("action")
         match action:
 
             case "attack":
                 #implement attack which card which player + check if possible
-                card_to_play = self.choose_card_from_hand(-1) #virus card
-                target_player = None #for now, TOBEDONE FRONTEND
-                target_stack = None # for now, , TOBEDONE FRONTEND
+                card_to_play = attempt_info.get("card_to_play") #virus card; altrnatively: self.choose_card_from_hand(-1)
+                target_player = attempt_info.get("target_player")
+                target_stack = attempt_info.get("target_stack") 
                 return Attempt(action="attack", card=card_to_play, target_player=target_player, target_stack=target_stack)
 
             case "vaccinate": #add vaccine to a healthy card
-                card_to_play = self.choose_card_from_hand(1) #vaccine card
+                card_to_play = attempt_info.get("card_to_play") #vaccine card; altrnatively: self.choose_card_from_hand(1)
                 return Attempt(action="vaccinate", card=card_to_play)
             
             case "heal": #heal a virus
-                card_to_play = self.choose_card_from_hand(1) #vaccine card
+                card_to_play = attempt_info.get("card_to_play") #vaccine card; altrnatively: self.choose_card_from_hand(1)
                 return Attempt(action="heal", card=card_to_play)
 
             case "organ": #put out an organ
-                card_to_play = self.choose_card_from_hand(0) #organ card
+                card_to_play = attempt_info.get("card_to_play") #organ card; altrnatively: self.choose_card_from_hand(0)
                 return Attempt(action="organ", card=card_to_play)
 
             case "discard":
-                # how many cards you want to discard and which ones - TOBEDONE, FRONTEND
-                discard_cards = [] #list of cards to discard
+                discard_cards = attempt_info.get("discard_cards") #list of cards to discard
                 return Attempt(action="discard", discard_cards=discard_cards)
             
             case "special":
-                card_to_play = self.choose_card_from_hand(100) #special card
+                card_to_play = attempt_info.get("card_to_play") #special card; altrnatively: self.choose_card_from_hand(100)
                 if card_to_play is None:
                     raise ValueError("No special cards on hand!")
                 
                 if card_to_play.card_type in ["organ swap", "body swap"]:
-                    stack = None #for now, TOBEDONE FRONTEND
-                    target_player = None #for now, TOBEDONE FRONTEND
-                    target_stack = None # for now, , TOBEDONE FRONTEND
+                    stack = attempt_info.get("stack") 
+                    target_player = attempt_info.get("target_player") 
+                    target_stack = attempt_info.get("target_stack") 
                     return SwapThiefAttempt(action=card_to_play.card_type, player=self, stack=stack, target_player=target_player, target_stack=target_stack)
                 
                 elif card_to_play.card_type == "thieft":
-                    target_player = None #for now, TOBEDONE FRONTEND
-                    target_stack = None # for now, , TOBEDONE FRONTEND
+                    target_player = attempt_info.get("target_player") 
+                    target_stack = attempt_info.get("target_stack") 
                     return SwapThiefAttempt(action="thieft", player=self, target_player=target_player, target_stack=target_stack)
                 
                 elif card_to_play.card_type == "latex glove":
@@ -89,11 +88,11 @@ class Player:
                 
                 elif card_to_play.card_type == "epidemy":
                     # player can choose 0 - 4 viruses from their stacks to give them to other players - TOBEDONE
-                    # they have to choose how many and which ones and to whom to give them - TOBEDONE
-                    virus_cards = [] #list of virus cards to give away - TOBEDONE FRONTEND
-                    target_stacks = [] #list of target stacks to receive the virus cards - TOBEDONE FRONTEND
-                    target_players = [] #list of target players to receive the virus cards - TOBEDONE FRONTEND
-                    player_stacks = [] #list of player's stacks to remove virus cards from - TOBEDONE FRONTEND
+                    # they have to choose how many and which ones and to whom to give them (FRONTEND)
+                    virus_cards = attempt_info.get("virus_cards") #list of virus cards to give away 
+                    target_stacks = attempt_info.get("target_stacks") #list of target stacks to receive the virus cards 
+                    target_players = attempt_info.get("target_players") #list of target players to receive the virus cards 
+                    player_stacks = attempt_info.get("player_stacks") #list of player's stacks to remove virus cards from 
                     return EpidemyAttempt(action="epidemy", player=self, virus_cards=virus_cards, target_stacks=target_stacks, player_stacks=player_stacks, target_players=target_players)
             case _:
                 raise ValueError("Invalid action chosen!")
