@@ -10,7 +10,7 @@ class Game(models.Model):
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)
 
-
+# - to be deleted
 class GameState(models.Model):
     game_id = models.ForeignKey(Game, on_delete=models.RESTRICT)
     player_id = models.ForeignKey('Player', on_delete=models.RESTRICT)
@@ -20,10 +20,10 @@ class GameState(models.Model):
 
 
 class Player(models.Model):
-    nickname = models.CharField(max_length=100)
+    nickname = models.CharField(max_length=100, unique=True)
     total_score = models.IntegerField(default=0)
 
-
+# - to be deleted
 class Card(models.Model):
     card_type = models.CharField(max_length=100)
     color = models.CharField(max_length=50)
