@@ -25,21 +25,21 @@
 
 ## Game class
 
-- ```add_player``` - it should handle both creating the player and adding it to the list (here change to dictionary players[id] = player too), also should add them to the game players in a database
-- ```add_player``` - it should take as an input player name, their's id is retrieved during the creation query from database
-- ```add_player``` - example workflow (database handles errors in this case):
+- ```add_player``` - it should handle both creating the player and adding it to the list (here change to dictionary players[id] = player too)~~, also should add them to the game players in a database~~
+- ```add_player``` - it should take as an input player name and id~~, their's id is retrieved during the creation query from database~~
+- ```add_player``` - example workflow ~~(database handles errors in this case)~~:
 ```
-input: name
+input: name, id
 
-check if player exists (getting id from the database)
-    -> if no, create one (database action)
+check if player exists in the game dict~~(getting id from the database)
+    -> if no, create one (database action)~~
 
-add a player to game (database action)
+add a player to game ~~(database action)~~
 
 return player's id and name (connection purposes)
 ```
 
-- ```remove_player``` - it should delete the player based on their id
+- ```remove_player``` - it should delete the player based on their id and return their id or None
 
 - ```draw_card_for_player``` - take id as input, return card info
 - ```discard_card_from_player``` - take card id and player id as input, return player id and card info
