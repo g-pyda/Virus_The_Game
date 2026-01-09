@@ -37,7 +37,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
         # Register player's channel name in Redis
-        await self.channel_manager.add_player(self.room_code, self.player_id, self.channel_name)
+        await self.channel_manager.add_player(
+            self.room_code, self.player_id, self.channel_name
+            )
 
         await self.accept()
 
@@ -207,25 +209,50 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         """
         Handle incoming WebSocket messages from the player.
-        Parses action type and routes to appropriate handler (use_card, discard_card, end_turn).
+        Parses action type and routes to appropriate handler 
+        (use_card, discard_card, end_turn).
         """
         data = json.loads(text_data)
         action = data.get('action')
-        if action == 'use_card':
-            await self.use_card(
-                data.get('card_id'),
-                data.get('target_id'),
-                data.get('player_id')
-                )
-        elif action == 'discard_card':
-            await self.discard_card(
-                data.get('card_id'),
-                data.get('player_id')
-                )
-        elif action == 'end_turn':
-            await self.end_turn(
-                data.get('player_id')
-                )
+        attempt_info = {
+            'action': action,
+        }
+        if action in [
+            "attack", "vaccinate", "heal", "organ", "discard", "special"
+             ]:
+            attempt_info.update({
+                'card_to_play': data.get('card_id'),
+            })
+        if action in ["attack", "vaccinate", "heal"]:
+            attempt_info.update({
+                'target_stack': data.get('target_id'),
+            })
+        if action == "attack":
+            attempt_info.update({
+                'target_player': data.get('target_id'),
+            })
+        if action == "special":
+            card_type = data.get('card_type')
+            if card_type in ["organ swap", "body swap", "thieft"]:
+                attempt_info.update({
+                    'target_player': data.get('target_id'),
+                    'target_stack': data.get('target_stack')
+                })
+            if card_type in ["organ swap", "body swap"]:
+                attempt_info.update({
+                    'player_stack': data.get('player_stack')
+                })
+            if card_type == "epidemy":
+                attempt_info.update({
+                    'player_stacks': data.get('player_stacks'),
+                    'target_stacks': data.get('target_stacks'),
+                    'target_players': data.get('target_players'),
+                    'virus_cards': data.get('virus_cards')
+                })
+
+        await self.send_message_to_host(
+            "player's move", attempt_info
+        )
 
         message = data.get('message')
 
@@ -304,11 +331,22 @@ class HostConsumer(AsyncWebsocketConsumer):
 
         print("Host disconnected:", close_code)
 
-    async def receive(self, text_data):
+    async def receive(self, json_data):
         """
         Handle incoming WebSocket messages from the host.
         Routes host commands and game logic decisions.
         """
+
+        data = json.loads(json_data)
+        action = data.get('action')
+        # Handle host-specific actions here
+        match action:
+            case 'start_game':
+                # Starting a game
+                # self.game.start_game()
+                print("Game started by host.")
+            case _:
+                print("Unknown host action.")
 
     async def send_direct_message(self, target_player_id, action, data):
         """
@@ -331,7 +369,8 @@ class HostConsumer(AsyncWebsocketConsumer):
     async def broadcast_to_all_players(self, action, data):
         """
         Send a message to all players in the room.
-        Broadcasts game state or commands to all connected players simultaneously.
+        Broadcasts game state or commands to all
+        connected players simultaneously.
         """
         players = await self.channel_manager.get_all_players(self.room_code)
         for player_id, channel_name in players.items():
