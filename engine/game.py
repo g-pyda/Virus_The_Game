@@ -6,42 +6,56 @@ import random
 
 class Deck:
     def __init__(self):
-        self.cards = [] #list of all cards in the deck
-        self.discard_pile = [] #list of all discarded cards
+        self.cards: dict[int, Card] = {} #list of all cards in the deck
+        self.discard_pile: dict[int, Card] = {} #list of all discarded cards
+        self._next_id = 0
 
     def draw_card(self):
-        if len(self.cards) == 0:
-            self.reshuffle_cards()
-        return self.cards.pop()
+        if not self.cards:
+            self.reshuffle_cards() #reshuffle if no cards left
+
+        card_id = random.choice(list(self.cards.keys()))
+        return self.cards.pop(card_id)
+
+    def _add_card(self, card):
+        self.cards[card.id] = card
 
     def discard_card(self, card: Card):
-        self.discard_pile.append(card)
+        self.discard_pile[card.id] = card
 
     def reshuffle_cards(self):
-        self.cards.extend(self.discard_pile)
+        self.cards.update(self.discard_pile)
         self.discard_pile.clear()
-        random.shuffle(self.cards)
+    
+    def _add_special(self, card_type):
+        card = SpecialCard(id=self._next_id, card_type=card_type)
+        self._next_id += 1
+        self.cards[card.id] = card
 
+    
     def initialize_deck(self):
-        pass
+        def new_card(color, value):
+            card = Card(id=self._next_id, color=color, value=value)
+            self._next_id += 1
+            self.cards[card.id] = card
         #create all 58 basic cards: 5 organ, 4 virus, 4 vaccine per color + rainbow: 1 organ, 1 virus, 4 vaccine
         for color in ["red", "green", "blue", "yellow"]:
-            for _ in range(5): self.cards.append(Card(color=color, value=0))
-            for _ in range(4): self.cards.append(Card(color=color, value=-1))
-            for _ in range(4): self.cards.append(Card(color=color, value=1))
+            for _ in range(5): new_card(color, 0)
+            for _ in range(4): new_card(color, -1)
+            for _ in range(4): new_card(color, 1)
         #rainbow cards   
-        self.cards.append(Card(color="rainbow", value=0))
-        self.cards.append(Card(color="rainbow", value=-1))
-        for _ in range(4): self.cards.append(Card(color="rainbow", value=1))
+        new_card("rainbow", 0)
+        new_card("rainbow", -1)
+        for _ in range(4): new_card("rainbow", 1)
+        
         #append special cards
-        for _ in range(3): self.cards.append(SpecialCard(card_type="organ swap"))
-        self.cards.append(SpecialCard(card_type="body swap"))
-        for _ in range(3): self.cards.append(SpecialCard(card_type="thieft"))
-        self.cards.append(SpecialCard(card_type="latex glove"))
-        for _ in range(2): self.cards.append(SpecialCard(card_type="epidemy"))
+        for _ in range(3): 
+            self._add_special("organ swap")
+            self._add_special("thieft")
+        self._add_special("body swap")
+        self._add_special("latex glove")
+        for _ in range(2): self._add_special("epidemy")
 
-        #shuffle the deck at the end
-        random.shuffle(self.cards)
         print(len(self.cards)) #for testing purposes
 
 class Game:

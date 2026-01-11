@@ -17,11 +17,11 @@
 
 ## Deck class
 
-- i'd change ```cards``` nad ```discarded_pile``` lists to dictionaries in form cards[id] = card etc., it eases access to the cards data and their identification in player's hand
+- ✅ i'd change ```cards``` nad ```discarded_pile``` lists to dictionaries in form cards[id] = card etc., it eases access to the cards data and their identification in player's hand
 
-- ```reshuffle_cards``` - as dictionary would be used, only the addition of cards would be performed
+- ✅ ```reshuffle_cards``` - as dictionary would be used, only the addition of cards would be performed
 
-- ```draw_card``` - the function shuffles cards (connects card and discarded) and takes the card, with the __random index__
+- ✅ ```draw_card``` - the function shuffles cards (connects card and discarded) and takes the card, with the __random index__
 
 ## Game class
 

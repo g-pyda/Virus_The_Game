@@ -9,9 +9,10 @@ status = ["healthy", "sick", "vaccinated", "immune", "dead"]
 #or maybe card doesnt have to be a class? too late imo (chyba że chcę ci się)
 @dataclass
 class Card:
+    id: int #unique identifier for each card
     color: str
     value: int #where for value: 1 is vaccine, -1 is virus, 0 is an organ; do we want it to bt an enum?
-    id: int #unique identifier for each card
+
 
 class Stack:
     #stack for a card (to add viruses or vaccines)
@@ -48,16 +49,11 @@ class Stack:
 
     def set_status(self):
         match self.stack_value:
-            case 0:
-                self.status = "healthy"
-            case 1:
-                self.status = "vaccinated"
-            case -1:
-                self.status = "sick"
-            case 2:
-                self.status = "immune"
-            case -2:
-                self.status = "dead"
+            case 0: self.status = "healthy"
+            case 1: self.status = "vaccinated"
+            case -1: self.status = "sick"
+            case 2: self.status = "immune"
+            case -2: self.status = "dead"
             case _:
                 #self.status = "unknown"
                 raise ValueError("There occured a problem while setting the status of the stack!") 
@@ -68,9 +64,10 @@ class SpecialCard:
     card_types = ["organ swap", "thieft", "body swap", "latex glove", "epidemy"]
     value = 100 #to filter later by that
 
-    def __init__(self, card_type: str):
+    def __init__(self, id: int, card_type: str):
         if card_type not in self.card_types:
             raise ValueError("Invalid special card type!")
+        self.id = id
         self.card_type = card_type
 
     #to implement later; they will do ✨something✨
