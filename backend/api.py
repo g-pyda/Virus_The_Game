@@ -4,7 +4,7 @@ from rest_framework import serializers, status, viewsets, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Game, Player
+from .models import Game, Player, PlayerToken
 from .serializers import GameSerializer, PlayerSerializer
 
 def ok(**data):
@@ -46,26 +46,31 @@ class GameViewSet(viewsets.GenericViewSet):
                 game = Game.objects.create()
                 player, _ = Player.objects.get_or_create(nickname=nickname)
                 game.players.add(player)
+                token = PlayerToken.generate(player)
         except IntegrityError:
             return err("Database error")
 
-        return created(game_id=game.id, game=GameSerializer(game).data)
+        return created(game_id=game.id, player_id=player.id, token=token.value, game=GameSerializer(game).data)
 
     @action(detail=True, methods=["post"])
     def join(self, request, pk=None):
         game = self.get_object()
 
         req = JoinGameRequestSerializer(data=request.data)
-        if not req.is_valid():
-            return err("player_name is required")
-
+        req.is_valid(raise_exception=True)
         nickname = req.validated_data["nickname"]
 
         with transaction.atomic():
             player, _ = Player.objects.get_or_create(nickname=nickname)
+            token = PlayerToken.generate(player)
             game.players.add(player)
 
-        return ok(player_id=player.id, game_id=game.id, game=GameSerializer(game).data)
+        return ok(
+            player_id=player.id,
+            game_id=game.id,
+            token=token.value,
+            game=GameSerializer(game).data,
+        )
 
     @action(detail=True, methods=["get"])
     def state(self, request, pk=None):
