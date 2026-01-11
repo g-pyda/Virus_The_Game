@@ -11,14 +11,13 @@ import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from virus_the_game.routing import websocket_urlpatterns
-from channels.auth import AuthMiddlewareStack
-
+from virus_the_game.ws_auth import PlayerTokenAuthMiddlewareStack
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'virus_the_game.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(websocket_urlpatterns)
-        ),
+    "websocket": PlayerTokenAuthMiddlewareStack(
+    URLRouter(websocket_urlpatterns)
+    ),
 })

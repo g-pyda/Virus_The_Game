@@ -1,12 +1,17 @@
 from django.db import models
+import secrets
 
 
 class Game(models.Model):
     finished = models.BooleanField(default=False)
     players = models.ManyToManyField("Player", related_name="games")
-    winner_id = models.ForeignKey(
-        'Player', null=True, blank=True, on_delete=models.SET_NULL, related_name='won_games'
-        )
+    winner = models.ForeignKey(
+        "Player",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="won_games",
+    )
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)
 
@@ -22,6 +27,18 @@ class Game(models.Model):
 class Player(models.Model):
     nickname = models.CharField(max_length=100, unique=True)
     total_score = models.IntegerField(default=0)
+
+class PlayerToken(models.Model):
+    player = models.OneToOneField(Player, on_delete=models.CASCADE, related_name="token")
+    value = models.CharField(max_length=64, unique=True)
+
+    @staticmethod
+    def generate(player):
+        token, _ = PlayerToken.objects.get_or_create(
+            player=player,
+            defaults={"value": secrets.token_hex(32)}
+        )
+        return token
 
 # # - to be deleted
 # class Card(models.Model):
