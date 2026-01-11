@@ -60,70 +60,111 @@ class Deck:
 
 class Game:
 
-    deck = Deck() #list of all 68 cards but in random order 
-
     def __init__(self):
-        self.players = []
+        self.deck = Deck() #list of all 68 cards
+
+        self.players: dict[int, Player] = {}
+        self.player_order: list[int] = []
         self.index_of_current_player = 0
+        
         self.players_number = 0
         self.winner = None
         self.turn_number = 0
     
     # players handling
-    def add_player(self, player: Player):
-        if player in self.players:
+    def add_player(self, name: str, player_id: int):
+        if player_id in self.players:
             raise ValueError("Player already in the game!")
         if len(self.players) >= 8:
             raise ValueError("Maximum number of players reached!")
-        self.players.append(player)
+        
+        player = Player(name, player_id)
+        self.players[player_id] = player
         self.players_number = len(self.players)
-    
-    def remove_player(self, player: Player):
-        self.players.remove(player)
+        self.player_order.append(player_id)
+
+        return {"id": player_id, "name": name}
+
+    def remove_player(self, player_id: int):
+        if player_id not in self.players:
+            return None
+        del self.players[player_id]
+        self.player_order.remove(player_id)
         self.players_number = len(self.players)
+
+        return player_id
     
     # card handling
-    def draw_card_for_player(self, player: Player):
+    def draw_card_for_player(self, player_id: int):
         card = self.deck.draw_card()
-        player.on_hand.append(card)
+        self.players[player_id].on_hand.append(card)
+        return {"player_id": player_id, "card_id": card.id}
 
-    def discard_card_from_player(self, player: Player, card: Card):
-        player.on_hand.remove(card)
+    def discard_card_from_player(self, player_id: int, card_id: int):
+        card = next(card for card in self.players[player_id].on_hand if card.id == card_id)
+        self.players[player_id].on_hand.remove(card)
         self.deck.discard_card(card)
+        return {"player_id": player_id, "card_id": card.id}
 
     # game flow
-    def check_if_winner(self):
-        if self.players[self.index_of_current_player].check_win_condition():
+    def check_if_winner(self) -> bool:
+        p_id = self.player_order[self.current_player_index]
+        if self.players[p_id].check_win_condition():
+            self.winner_id = p_id
             return True
         return False
 
     def resolve_attempt(self, player: Player, attempt):
+
+        result = {"player_id": player.id, "action": attempt.action, "success": True,}
+
         match attempt.action:
+
+
             case "attack":
+                #unsuccesfull -> need to be changed to return success: false                
                 if attempt.target_player is None or attempt.target_stack is None:
                     raise ValueError("No target player or stack specified for attack!")
+                
                 if (attempt.target_stack.color != "rainbow" and attempt.card.color != "rainbow"):
                     if attempt.target_stack.color != attempt.card.color:
                         raise ValueError("Card color does not match stack color!")
+                
                 if attempt.target_stack.status == "immune":
                     raise ValueError("Cannot attack this stack!")
+                
+
                 isdead = attempt.target_player.add_card_to_stack(attempt.target_stack, attempt.card)
                 player.on_hand.remove(attempt.card)
+
+                result.update({
+                "card_id": attempt.card.id,
+                "target_player_id": attempt.target_player.id,
+                "target_stack_color": attempt.target_stack.color,
+                })
+
                 if isdead:
                     #move the stack's cards to discard pile
                     attempt.target_player.remove_stack(attempt.target_stack)
                     for card in attempt.target_stack.cards:
                         self.deck.discard_card(card)
 
+
             case "heal": #handles rainbow
+                #unsuccessfull -> returns FALSE
                 if attempt.target_stack is None:
                     raise ValueError("No target stack specified for healing/vaccinating!")
+                
                 if (attempt.target_stack.color != "rainbow" and attempt.card.color != "rainbow"):
                     if attempt.target_stack.color != attempt.card.color:
                         raise ValueError("Card color does not match stack color!")
+                
                 if attempt.target_stack.status == "immune":
                     raise ValueError("Stack is already immune!")
+                
+                #handling the attempt
                 player.add_card_to_stack(attempt.target_stack, attempt.card)
+                
                 if attempt.target_stack.status == "healthy": # it means the virus was removed by vaccine - both go to discard
                     attempt.target_stack.cards.remove(attempt.card) # remove vaccine from stack
                     virus_card = next(card for card in attempt.target_stack.cards if card.value == -1)
@@ -133,6 +174,11 @@ class Game:
                     self.deck.discard_card(attempt.card) # discard vaccine card
                 player.on_hand.remove(attempt.card) # remove from hand, NOT handled in add_card_to_stack
 
+                result.update({
+                    "card_id": attempt.card.id,
+                    "target_stack_color": attempt.target_stack.color,
+                })
+
 
             case "organ":
                 if attempt.card.color != "rainbow":
@@ -140,44 +186,67 @@ class Game:
                         raise ValueError("You already have an organ of this color laid out!")
                 else:
                     player.lay_out_organ(attempt.card)
+
+                result["card_id"] = attempt.card.id
                     
+
             case "discard":
+                discarded =[]
                 for card in attempt.discard_cards:
                     self.discard_card_from_player(player, card)
+                    discarded.append(card.id)
+                result["discarded_cards"] = discarded
+            
+
             case "special":
+                result["special_type"] = attempt.card.card_type
                 #check if possible
+
                 match attempt.card.card_type:
+
+
                     case "organ swap":
                         if attempt.target_stack.color != attempt.stack.color and attempt.target_stack.color != "rainbow" and attempt.stack.color != "rainbow" and (attempt.target_stack.color in [stack.color for stack in player.laid_out] or attempt.stack.color in [stack.color for stack in attempt.target_player.laid_out]):
                             raise ValueError("Cannot swap these organs!")
                         attempt.stack, attempt.target_stack = attempt.target_stack, attempt.stack
                         #swap stacks between players but im not sure if it works like i want it to do
 
+
                     case "thieft":
+                        #failures
                         if attempt.target_stack.status == "immune":
                             raise ValueError("Cannot steal from an immune stack!")
                         if len(attempt.target_stack.cards) == 0:
                             raise ValueError("Target stack has no cards to steal!")
                         if attempt.target_stack.color in [stack.color for stack in player.laid_out]:
                             raise ValueError("You already have an organ of this color laid out!")
+                        
+                        #attempt
                         stolen_card = attempt.target_stack
-                        attempt.target_player.remove_stack(attempt.target_stack)
+                        attempt.target_player.remove_stack(attempt.stolen_card)
                         player.laid_out.append(stolen_card)
                         #chyba jest git, ale wszystkie karty specjalne pisałam z gorączką więc do sprawdzenia
-                        
+                        result["stolen_stack_color"] = stolen_card.color
+
                     case "body swap": #there are no restrictions on body swap 
                         attempt.player.laid_out, attempt.target_player.laid_out = attempt.target_player.laid_out, attempt.player.laid_out
                         #swap all stacks between players
-                        
+
+
                     case "latex glove":
-                        for player in self.players:
+                        for player in self.players.values():
                             for card in player.on_hand:
                                 self.discard_card_from_player(player, card)
+                    
+                    
                     case "epidemy":
+
                         for i in range(len(attempt.virus_cards)):
                             virus_card = attempt.virus_cards[i]
                             #target_player = attempt.target_players[i] #not used but i think it should be used ? TOBEDONE
                             target_stack = attempt.target_stacks[i]
+
+                            #failures -> return flase
                             if virus_card.value != -1:
                                 raise ValueError("Only virus cards can be given away in an epidemy!")
                             if target_stack.status != "healthy":
@@ -186,14 +255,23 @@ class Game:
                                 if virus_card.color != "rainbow":
                                     if target_stack.color != virus_card.color:
                                         raise ValueError("Virus card color does not match target stack color!")
+                            
+                            #handling attempt
                             attempt.player.remove_card_from_stack(attempt.player_stacks[i], virus_card)
                             target_stack.add_card(virus_card)
+                    
+                    
                     case _:
                         raise ValueError("Invalid special card type!")
                 self.deck.discard_card(attempt.card)
                 player.on_hand.remove(attempt.card)
+                result["card_id"] = attempt.card.id
+
+
             case _:
                 raise ValueError("Invalid action in attempt!")
+            
+        return result
 
     def start_game(self):
         if len(self.players) < 2:
@@ -204,23 +282,12 @@ class Game:
             for _ in range(3):
                 self.draw_card_for_player(player)
         #game starts
-        while True:
-            self.turn_number += 1
-            current_player = self.players[self.index_of_current_player]
-            if current_player.on_hand != 0:
-                attempt = current_player.attempt_move()
-                self.resolve_attempt(current_player, attempt)
 
-                is_there_winner = self.check_if_winner()
-                if is_there_winner: 
-                    #current_player is the winner
-                    break
-
-            while current_player.cards.on_hand < current_player.max_cards_on_hand:
-                self.draw_card_for_player(current_player)
-
-            self.index_of_current_player = (self.index_of_current_player + 1) % self.players_number
-            break #remove later, currently to not end up in infinite loop
+    def next_player(self):
+        self.index_of_current_player = (self.index_of_current_player + 1) % self.players_number
+        return self.player_order[self.current_player_index]
+    
+    
 
 
 
