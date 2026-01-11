@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # 'virus_game_mother',
+    'rest_framework',
     'backend',
 ]
 
