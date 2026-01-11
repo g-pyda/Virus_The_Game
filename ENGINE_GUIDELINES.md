@@ -45,7 +45,7 @@ return player's id and name (connection purposes)
 - ✅```discard_card_from_player``` - take card id and player id as input, return player id and card info
 - ✅```discard_card_from_stack``` - am I mistaken or this function is never used? -> YEP, DELETED IT
 - ✅ ```check_if_winner``` - better if if it would return bool value -> RETURNS BOOL
-- ```resolve_attempt``` - after each successfull attempt, return a dictionary with result info, like player id, target player id, card id etc, leave errors as they are
+- ✅```resolve_attempt``` - after each successfull attempt, return a dictionary with result info, like player id, target player id, card id etc, leave errors as they are
 - ✅```start_game``` - this should only initialize the game (give out cards etc), do not perform the game loop
 - ✅ implement ```next_player``` method that changes the current player to the next and returns the id of new current player (very important in game flow!)
 - ✅I suggest to create additional list of player's ids in order of adding to create player queue in the turn
