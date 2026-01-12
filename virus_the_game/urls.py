@@ -19,6 +19,12 @@ from django.urls import path, include
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('virus_game_mother.urls')),
+    path("admin/", admin.site.urls),
+
+    # Your REST API (DRF)
+    path("api/", include("backend.urls")),
+
+    # Optional: if you still want a homepage route, point it to backend for now
+    path("", include("backend.urls")),
 ]
+
