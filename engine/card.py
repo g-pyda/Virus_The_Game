@@ -23,9 +23,9 @@ class Stack:
         if(Card.value != 0):
             raise TypeError("Your first card of the color has to be an organ!") 
         else:
-            self.id += self.base_id
-            self.base_id += 1
-            
+            self.id += Stack.base_id
+            Stack.base_id += 1
+
             self.cards = []
             self.stack_value = 0
             self.status = "healthy"
