@@ -126,6 +126,12 @@ Here player id IN STRING is used as sender
 }
 ```
 
+- opponents' stacks state request
+```json
+"header" : "all_stacks",
+"data" : {}
+```
+
 - playing a card - each of the fields is specific to the card usecase
 ```json
 "header" : "card_play",
@@ -174,6 +180,12 @@ Its role is to fetch the data from the players via websockets, apply them on the
 "data": {
     "action": "add",
 }
+```
+
+- opponents' stacks state request
+```json
+"header" : "all_stacks",
+"data" : {}
 ```
 
 - playing a card - each of the fields is specific to the card usecase

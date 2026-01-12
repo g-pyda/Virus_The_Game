@@ -31,6 +31,7 @@ class PlayerConsumer(AsyncWebsocketConsumer):
             return
 
         self.player = player
+        self.nickname = player.nickname
 
         # Join room group
         print("Connecting...")
@@ -160,7 +161,8 @@ class PlayerConsumer(AsyncWebsocketConsumer):
             case 'connection':
                 await self.send_message_to_host(
                     header,
-                    {'action': 'add'}
+                    {'action': 'add',
+                     'nickname': self.nickname}
                     )
             case "turn_end":
                 await self.send_message_to_host(
@@ -342,6 +344,40 @@ class HostConsumer(AsyncWebsocketConsumer):
 
     # ------------------ message senders ----------------- #
 
+    async def send_group_message(self, message):
+        """
+        Broadcast a message to all players in the room group.
+        Used for game state changes that affect all players.
+        """
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'group_message',
+                'sender': self.player_id,
+                'message': message
+            }
+        )
+
+    async def send_message_to_player(self, player_id, header, data):
+        """
+        Send a direct message to the host.
+        Uses Redis to lookup host's channel name for direct delivery.
+        """
+        host_channel = await self.channel_manager.get_player_channel(
+            self.room_code,
+            player_id
+            )
+        if host_channel:
+            await self.channel_layer.send(
+                host_channel,
+                {
+                    'type': 'host_message',
+                    'header': header,
+                    'sender': "host",
+                    'data': data,
+                    }
+            )
+
     # ----------------- message receivers ---------------- #
 
     async def player_message(self, event):
@@ -368,26 +404,74 @@ class HostConsumer(AsyncWebsocketConsumer):
     async def handle_player_message(self, sender, header, data):
         match header:
             case "connection":
-                self.connect_player(int(sender), data)
+                await self.connect_player(int(sender), data)
             case "card_play":
-                self.players_move(int(sender), data)
+                await self.players_move(int(sender), data)
             case "turn_end":
-                self.evaluate_turn(int(sender), data)
-
-        await self.send_message_to_player(
-                    sender,
-                    "attempt",
-                    {"status": True}
-                    )
+                await self.evaluate_turn(int(sender))
+            case "all_stacks":
+                await self.provide_other_stacks(int(sender))
 
     # ------------ game logic helpers ------------------ #
 
-    def connect_player(self, player_id, data):
+    async def connect_player(self, player_id, data):
+        try:
+            # add the player to the game engine
+            self.game.add_player(data.get("nickname"), player_id)
+            await self.send_message_to_player(
+                    player_id,
+                    "attempt",
+                    {
+                        "status": True,
+                        'message': ''
+                    })
+        except Exception as e:
+            await self.send_message_to_player(
+                    player_id,
+                    "attempt",
+                    {
+                        "status": False,
+                        'message': e.message
+                    })
+
+    async def players_move(self, player_id, data):
+        try:
+            player = self.game.players[player_id]
+            attempt = player.attempt_move(data)
+            result = self.game.resolve_attempt(player, attempt)
+            await self.send_message_to_player(
+                    player_id,
+                    "attempt",
+                    {
+                        "status": True,
+                        'message': result
+                    })
+        except Exception as e:
+            await self.send_message_to_player(
+                    player_id,
+                    "attempt",
+                    {
+                        "status": False,
+                        'message': e.message
+                    })
+
+    async def evaluate_turn(self, player_id):
+        new_player = self.game.next_player()
+        for player_id in self.game.player_order:
+            await self.send_message_to_player(
+                    player_id,
+                    "turn_state",
+                    {
+                        "status": player_id == new_player,
+                    })
+            await self.send_the_cards(player_id)
+            await self.send_the_stacks(player_id)
+
+    async def provide_other_stacks(self, player_id):
         pass
 
-    def players_move(self, player_id, data):
+    async def send_the_cards(self, player_id):
         pass
 
-    def evaluate_turn(self, player_id, data):
+    async def send_the_stacks(self, player_id):
         pass
-
