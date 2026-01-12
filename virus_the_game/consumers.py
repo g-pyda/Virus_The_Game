@@ -9,7 +9,7 @@ from consumer_helpers import (
 # ==================== Game Consumer ==================== #
 
 
-class GameConsumer(AsyncWebsocketConsumer):
+class PlayerConsumer(AsyncWebsocketConsumer):
     """
     WebSocket consumer for individual game players.
     Handles player connections, game actions,
@@ -221,7 +221,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         """
         Handle incoming WebSocket messages from the player.
-        Parses action type and routes to appropriate handler 
+        Parses action type and routes to appropriate handler
         (use_card, discard_card, end_turn).
         """
         data = json.loads(text_data)
