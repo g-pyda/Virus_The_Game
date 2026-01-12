@@ -11,6 +11,7 @@ and broadcast them to the HostConsumer.
 ```json
 {
     "sender": "sender_name",
+    "header": "operation type",
     "data": {something}
 }
 ```
@@ -19,6 +20,7 @@ and broadcast them to the HostConsumer.
 
 - playing a card - each of the fields is specific to the card usecase
 ```json
+"header" : "card_play",
 "data": {
     "action": "string",
     "card_id" : 1,
@@ -34,6 +36,7 @@ and broadcast them to the HostConsumer.
 
 - ending the turn
 ```json
+"header" : "turn_end",
 "data": {
     "action": "end_turn",
 }
@@ -43,6 +46,7 @@ and broadcast them to the HostConsumer.
 
 - previous card action status
 ```json
+"header" : "attempt",
 "data": {
     "status" : True,
     "message" : "empty or error message"
@@ -52,6 +56,7 @@ and broadcast them to the HostConsumer.
 - hand state - defines the state of the player's hand
 (sent after every turn ot every player separately)
 ```json
+"header" : "hand_state",
 "data": {
     "cards" : [{
         "card_id" : 1,
@@ -65,6 +70,7 @@ and broadcast them to the HostConsumer.
 
 - player stacks state - defines the state of the player's stacks (organs visible on the lobby in the host) - required for some cards
 ```json
+"header" : "stacks_state",
 "data": {
     "stacks" : [{
         "stack_id" : 1,
@@ -76,6 +82,7 @@ and broadcast them to the HostConsumer.
 
 - others' stacks state - defines the state of the opponents' stacks (organs visible on the lobby in the host) - required for some cards
 ```json
+"header" : "others_state",
 "data": {
     "players" : [
         "player_id" : 1,
@@ -91,6 +98,7 @@ and broadcast them to the HostConsumer.
 
 - turn state - defines if it is player's move or not
 ```json
+"header" : "turn_state",
 "data": {
     "turn" : True
 }
@@ -103,6 +111,7 @@ Here player id IN STRING is used as sender
 ```json
 {
     "sender": "1",
+    "header": "operation type",
     "data": {something}
 }
 ```
@@ -111,6 +120,7 @@ Here player id IN STRING is used as sender
 
 - successfull connection, adding the player to the game engine in the host
 ```json
+"header" : "connection",
 "data": {
     "action": "add",
 }
@@ -118,6 +128,7 @@ Here player id IN STRING is used as sender
 
 - playing a card - each of the fields is specific to the card usecase
 ```json
+"header" : "card_play",
 "data": {
     "action": "string",
     "card_id" : 1,
@@ -133,20 +144,12 @@ Here player id IN STRING is used as sender
 
 - ending the turn
 ```json
+"header" : "turn_end",
 "data": {
     "action": "end_turn",
 }
 ```
 
-#### To ```frontend``` receiver:
-
-- outcome of the operation
-```json
-"data": {
-    "status" : True,
-    "message" : "empty or error message"
-}
-```
 
 ## HostConsumer
 
@@ -158,6 +161,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 ```json
 {
     "sender": "sender_name",
+    "header": "operation type",
     "data": {something}
 }
 ```
@@ -166,6 +170,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - successfull connection, adding the player to the game engine in the host
 ```json
+"header" : "connection",
 "data": {
     "action": "add",
 }
@@ -173,6 +178,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - playing a card - each of the fields is specific to the card usecase
 ```json
+"header" : "card_play",
 "data": {
     "action": "string",
     "card_id" : 1,
@@ -188,6 +194,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - ending the turn
 ```json
+"header" : "turn_end",
 "data": {
     "action": "end_turn",
 }
@@ -198,6 +205,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 ```json
 {
     "sender": "lobby",
+    "header": "operation type",
     "data": {something}
 }
 ```
@@ -206,6 +214,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - previous card action status
 ```json
+"header" : "attempt",
 "data": {
     "status" : True,
     "message" : "empty or error message"
@@ -215,6 +224,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 - hand state - defines the state of the player's hand
 (sent after every turn ot every player separately)
 ```json
+"header" : "hand_state",
 "data": {
     "cards" : [{
         "card_id" : 1,
@@ -228,6 +238,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - player stacks state - defines the state of the player's stacks (organs visible on the lobby in the host) - required for some cards
 ```json
+"header" : "stacks_state",
 "data": {
     "stacks" : [{
         "stack_id" : 1,
@@ -239,6 +250,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - others' stacks state - defines the state of the opponents' stacks (organs visible on the lobby in the host) - required for some cards
 ```json
+"header" : "others_state",
 "data": {
     "players" : [
         "player_id" : 1,
@@ -254,6 +266,7 @@ Its role is to fetch the data from the players via websockets, apply them on the
 
 - turn state - defines if it is player's move or not
 ```json
+"header" : "turn_state",
 "data": {
     "turn" : True
 }
