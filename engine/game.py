@@ -205,7 +205,7 @@ class Game:
                 #there are no restrictions on body swap
                 player.laid_out, target_player.laid_out = target_player.laid_out, player.laid_out
 
-            case "special": # Latex Glove
+            case "special": # latex glove
                 for p in self.players.values():
                     if p.id != player.id:
                         for c in list(p.on_hand): self.discard_card_from_player(p.id, c.id)
