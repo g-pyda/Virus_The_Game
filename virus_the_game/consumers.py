@@ -4,6 +4,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from consumer_helpers import (
     get_api_data, post_api_data, delete_api_data, RedisChannelManager
     )
+from ..engine.game import Game
+from ..engine.player import Player
 
 
 # ==================== Game Consumer ==================== #
@@ -145,9 +147,67 @@ class PlayerConsumer(AsyncWebsocketConsumer):
         data = message.get('data', {})
         match sender:
             case 'host':
-                await self.handle_host_message(header, data)
+                await self.handle_host_message()
             case 'frontend':
-                await self.handle_player_action()
+                await self.handle_player_action(header, data)
+
+    async def handle_player_action(self, header, data):
+        """
+        Handle messages received from the player.
+        Routes based on header
+        """
+        match header:
+            case 'connection':
+                await self.send_message_to_host(
+                    header,
+                    {'action': 'add'}
+                    )
+            case "turn_end":
+                await self.send_message_to_host(
+                    header,
+                    {'action': 'end-turn'}
+                    )
+            case 'card_play':
+                attempt_info = self.parse_player_action(data)
+                await self.send_message_to_host(
+                    header,
+                    attempt_info
+                    )
+
+    async def handle_host_message(self):
+        """
+        Handle messages received from the host.
+        Processes game state updates or commands sent by the host.
+        """
+        pass  # reaction is handled in frontend
+
+    # ------------ game logic helpers ------------------ #
+
+    def parse_player_action(self, data):
+        """
+        Route player action to the appropriate handler method.
+        Parses action type and extracts relevant parameters.
+        """
+
+        action = data.get('action')
+
+        # Route to appropriate handler based on action type
+        if action == 'attack':
+            attempt_info = self.get_attack_attempt_info(data)
+        elif action == 'vaccinate':
+            attempt_info = self.get_vaccinate_attempt_info(data)
+        elif action == 'heal':
+            attempt_info = self.get_heal_attempt_info(data)
+        elif action == 'organ':
+            attempt_info = self.get_organ_attempt_info(data)
+        elif action == 'discard':
+            attempt_info = self.get_discard_attempt_info(data)
+        elif action == 'special':
+            attempt_info = self.get_special_attempt_info(data)
+        else:
+            attempt_info = {'action': action}
+
+        return attempt_info
 
     def get_attack_attempt_info(self, data):
         """Extract action info for attack action."""
@@ -218,62 +278,6 @@ class PlayerConsumer(AsyncWebsocketConsumer):
 
         return attempt_info
 
-    async def handle_player_action(self, header, data):
-        """
-        Handle messages received from the player.
-        Routes based on header
-        """
-        match header:
-            case 'connection':
-                await self.send_message_to_host(
-                    header,
-                    {'action': 'add'}
-                    )
-            case "turn_end":
-                await self.send_message_to_host(
-                    header,
-                    {'action': 'end-turn'}
-                    )
-            case 'card_play':
-                attempt_info = self.parse_player_action(data)
-                await self.send_message_to_host(
-                    header,
-                    attempt_info
-                    )
-
-    def parse_player_action(self, data):
-        """
-        Route player action to the appropriate handler method.
-        Parses action type and extracts relevant parameters.
-        """
-
-        action = data.get('action')
-
-        # Route to appropriate handler based on action type
-        if action == 'attack':
-            attempt_info = self.get_attack_attempt_info(data)
-        elif action == 'vaccinate':
-            attempt_info = self.get_vaccinate_attempt_info(data)
-        elif action == 'heal':
-            attempt_info = self.get_heal_attempt_info(data)
-        elif action == 'organ':
-            attempt_info = self.get_organ_attempt_info(data)
-        elif action == 'discard':
-            attempt_info = self.get_discard_attempt_info(data)
-        elif action == 'special':
-            attempt_info = self.get_special_attempt_info(data)
-        else:
-            attempt_info = {'action': action}
-
-        return attempt_info
-
-    async def handle_host_message(self):
-        """
-        Handle messages received from the host.
-        Processes game state updates or commands sent by the host.
-        """
-        pass  # reaction is handled in frontend
-
 
 # =================== Host Consumer ==================== #
 
@@ -285,10 +289,13 @@ class HostConsumer(AsyncWebsocketConsumer):
     and handles direct messaging.
     """
 
+    # ------------- connection functions -------------- #
+
     async def connect(self):
         """
         Establish WebSocket connection for the host.
         Creates and initializes Redis channel manager for the room.
+        Initializes the game object.
         """
         # Join room group
         print("Host connecting...")
@@ -311,7 +318,7 @@ class HostConsumer(AsyncWebsocketConsumer):
         print(f"Room Manager created in Redis for room: {self.room_code}")
 
         # Creating the game instance in the host consumer
-        # self.game = Game()
+        self.game = Game()
 
     async def disconnect(self, close_code):
         """
@@ -333,99 +340,54 @@ class HostConsumer(AsyncWebsocketConsumer):
 
         print("Host disconnected:", close_code)
 
-    async def receive(self, json_data):
+    # ------------------ message senders ----------------- #
+
+    # ----------------- message receivers ---------------- #
+
+    async def player_message(self, event):
+        """Handle incoming message from a player."""
+        await self.send(json.dumps({
+            'action': event.get('action'),
+            'data': event.get('data')
+            }))
+
+    async def receive(self, message):
         """
         Handle incoming WebSocket messages from the host.
         Routes host commands and game logic decisions.
         """
+        sender = message.get('sender', 'unknown')
+        header = message.get('header', '')
+        data = message.get('data', {})
+        match sender:
+            case 'player':
+                await self.handle_player_message(sender, header, data)
+            case 'frontend':
+                await self.handle_host_action(header, data)
 
-        data = json.loads(json_data)
-        action = data.get('action')
-        # Handle host-specific actions here
-        match action:
-            case 'start_game':
-                # Starting a game
-                # self.game.start_game()
-                print("Game started by host.")
-            case _:
-                print("Unknown host action.")
+    async def handle_player_message(self, sender, header, data):
+        match header:
+            case "connection":
+                self.connect_player(int(sender), data)
+            case "card_play":
+                self.players_move(int(sender), data)
+            case "turn_end":
+                self.evaluate_turn(int(sender), data)
 
-    async def send_direct_message(self, target_player_id, action, data):
-        """
-        Send a direct message to a specific player from the host.
-        Uses Redis to lookup target player's channel name for direct delivery.
-        """
-        target_channel = await self.channel_manager.get_player_channel(
-            self.room_code, target_player_id
-        )
-        if target_channel:
-            await self.channel_layer.send(
-                target_channel,
-                {
-                    'type': 'host_direct_message',
-                    'action': action,
-                    'data': data
-                }
-            )
+        await self.send_message_to_player(
+                    sender,
+                    "attempt",
+                    {"status": True}
+                    )
 
-    async def broadcast_to_all_players(self, action, data):
-        """
-        Send a message to all players in the room.
-        Broadcasts game state or commands to all
-        connected players simultaneously.
-        """
-        players = await self.channel_manager.get_all_players(self.room_code)
-        for player_id, channel_name in players.items():
-            await self.channel_layer.send(
-                channel_name,
-                {
-                    'type': 'host_direct_message',
-                    'action': action,
-                    'data': data
-                }
-            )
+    # ------------ game logic helpers ------------------ #
 
-    async def host_direct_message(self, event):
-        """Handle incoming message from a player."""
-        await self.send(json.dumps({
-            'type': 'host_direct_message',
-            'action': event['action'],
-            'data': event['data']
-        }))
+    def connect_player(self, player_id, data):
+        pass
 
-    async def player_connected(self, event):
-        """Handle player connection event."""
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'player_connected',
-            'data': data
-        }))
+    def players_move(self, player_id, data):
+        pass
 
-    async def player_disconnected(self, event):
-        """Handle player disconnection event."""
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'player_disconnected',
-            'data': data
-        }))
+    def evaluate_turn(self, player_id, data):
+        pass
 
-    async def card_used(self, event):
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'card_used',
-            'data': data
-        }))
-
-    async def card_discarded(self, event):
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'card_discarded',
-            'data': data
-        }))
-
-    async def turn_ended(self, event):
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'turn_ended',
-            'data': data
-        }))
