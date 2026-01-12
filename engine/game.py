@@ -133,7 +133,7 @@ class Game:
                 if attempt.target_stack.status == "immune":
                     raise ValueError("Cannot attack this stack!")
                 
-
+                # here would need to be Stack = onhand[stack id]  ??
                 isdead = attempt.target_player.add_card_to_stack(attempt.target_stack, attempt.card)
                 player.on_hand.remove(attempt.card)
 
