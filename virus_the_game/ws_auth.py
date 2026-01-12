@@ -8,7 +8,8 @@ from django.apps import apps
 def get_player_for_token(token: str):
     PlayerToken = apps.get_model("backend", "PlayerToken")
     try:
-        return PlayerToken.objects.select_related("player").get(value=token).player
+        return PlayerToken.objects.select_related("player") \
+            .get(value=token).player
     except PlayerToken.DoesNotExist:
         return None
 

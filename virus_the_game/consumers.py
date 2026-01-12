@@ -12,12 +12,17 @@ from consumer_helpers import (
 class GameConsumer(AsyncWebsocketConsumer):
     """
     WebSocket consumer for individual game players.
-    Handles player connections, game actions, and direct messaging with other players or host.
+    Handles player connections, game actions,
+    and direct messaging with other players or host.
     """
 
     # ------------- connection functions -------------- #
     async def connect(self):
-        # main code
+        """
+        Establish WebSocket connection for a player.
+        Initializes Redis channel manager and registers player's channel name.
+        """
+        # player authentication
         player = self.scope.get("player")
         if not player:
             await self.close(code=4001)
@@ -25,21 +30,16 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         self.player = player
 
-        # branch code
-        """
-        Establish WebSocket connection for a player.
-        Initializes Redis channel manager and registers player's channel name.
-        """
         # Join room group
         print("Connecting...")
-        # end
         self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
         self.player_id = self.scope["url_route"]["kwargs"]["player_id"]
         self.room_group_name = f"{self.room_code}"
 
-        # main code
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        # branch code
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+            )
         # Initialize Redis manager
         self.redis = await aioredis.create_redis_pool('redis://redis:6379')
         self.channel_manager = RedisChannelManager(self.redis)
@@ -53,7 +53,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.channel_manager.add_player(
             self.room_code, self.player_id, self.channel_name
             )
-        # end
         await self.accept()
 
         print("Player connected to", self.room_group_name)
@@ -289,24 +288,11 @@ class GameConsumer(AsyncWebsocketConsumer):
         }))
 
 
-# main code
-class LobbyConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        player = self.scope.get("player")
-        if not player:
-            await self.close(code=4001)
-            return
-
-        self.player = player
-
-        self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
-        self.room_group_name = f"{self.room_code}"
-
-# branch code
 class HostConsumer(AsyncWebsocketConsumer):
     """
     WebSocket consumer for game host.
-    Manages room channel registry, broadcasts game state to players, and handles direct messaging.
+    Manages room channel registry, broadcasts game state to players,
+    and handles direct messaging.
     """
     
     async def connect(self):
@@ -322,36 +308,11 @@ class HostConsumer(AsyncWebsocketConsumer):
         # Initialize Redis manager
         self.redis = await aioredis.create_redis_pool('redis://redis:6379')
         self.channel_manager = RedisChannelManager(self.redis)
-        # end
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
 
-        # main code
-        await self.accept()
-        print("Player connected to lobby", self.room_group_name)
-
-    async def disconnect(self, close_code):
-        print("Disconnected from lobby:", close_code)
-
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        message = data.get("message")
-
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "lobby_message",
-                "message": message,
-            }
-        )
-
-    async def lobby_message(self, event):
-        await self.send(json.dumps({
-            "type": "lobby",
-            "message": event["message"],
-        # branch code
         # Register host's channel name in Redis
         await self.channel_manager.set_host(self.room_code, self.channel_name)
 
@@ -477,5 +438,4 @@ class HostConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({
             'type': 'turn_ended',
             'data': data
-        # end
         }))
