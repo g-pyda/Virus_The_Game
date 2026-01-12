@@ -5,3 +5,5 @@ uvicorn[standard]
 channels
 channels-redis
 djangorestframework
+httpx
+aioredis
