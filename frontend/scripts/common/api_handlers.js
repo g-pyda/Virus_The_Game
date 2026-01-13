@@ -5,7 +5,7 @@
  * @param {Object|null} body - Request body (for POST, PUT, PATCH). Pass null for GET/DELETE requests.
  * @returns {Promise<Object>} - The parsed JSON response
  */
-async function sendRequest(method, url, body = null) {
+export async function sendRequest(method, url, body = null) {
   const options = {
     method: method,
     headers: {
