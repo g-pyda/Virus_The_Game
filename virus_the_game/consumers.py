@@ -1,18 +1,19 @@
 import json
+
 import redis.asyncio as redis
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .consumer_helpers import (
-    get_api_data, post_api_data, 
-    delete_api_data, RedisChannelManager
-    )
+
+from .consumer_helpers import RedisChannelManager
 from .ws_protocol import (
     parse_incoming, parse_payload,
     WsProtocolError, build_attempt,
     build_envelope, build_message
 )
+from .game_service import GameService
+
+GAME_SERVICE = GameService()
 
 # ==================== Game Consumer ==================== #
-
 
 class GameConsumer(AsyncWebsocketConsumer):
     """
@@ -340,88 +341,65 @@ class GameConsumer(AsyncWebsocketConsumer):
 class HostConsumer(AsyncWebsocketConsumer):
     """
     WebSocket consumer for game host.
-    Manages room channel registry, broadcasts game state to players, and handles direct messaging.
+    Receives player envelopes via internal channel events and applies them to the engine.
+    Pushes authoritative state to players using the documented envelope protocol.
     """
-    
+
     async def connect(self):
-        """
-        Establish WebSocket connection for the host.
-        Creates and initializes Redis channel manager for the room.
-        """
-        # Join room group
         print("Host connecting...")
         self.room_code = self.scope["url_route"]["kwargs"]["room_code"]
         self.room_group_name = f"{self.room_code}"
 
-        # Initialize Redis manager
         self.redis = redis.from_url("redis://redis:6379", decode_responses=True)
         self.channel_manager = RedisChannelManager(self.redis)
 
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
-
-        # Register host's channel name in Redis
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.channel_manager.set_host(self.room_code, self.channel_name)
 
         await self.accept()
         print("Host connected to", self.room_group_name)
-        print(f"Room Manager created in Redis for room: {self.room_code}")
-
-        # Creating the game instance in the host consumer
-        # self.game = Game()
 
     async def disconnect(self, close_code):
-        """
-        Handle host disconnection.
-        Cleans up all room data in Redis and closes Redis connection.
-        """
-        # Clean up room data in Redis
         await self.channel_manager.cleanup_room(self.room_code)
-
-        # Leave room group
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
-
-        # Close Redis connection
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         await self.redis.close()
-
-
         print("Host disconnected:", close_code)
 
     async def receive(self, text_data=None, bytes_data=None):
         """
-        Handle incoming WebSocket messages from the host UI (browser).
+        Messages from host UI (browser). Optional.
+        Keep this minimal; gameplay comes from players via host_message().
         """
         if not text_data:
             return
 
-        data = json.loads(text_data)
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            await self.send(json.dumps({"type": "error", "message": "Invalid JSON from host UI"}))
+            return
+
         action = data.get("action")
+        if action == "start_game":
+            # Optional: call GAME_SERVICE.start_if_ready(...) or explicit start
+            await self.send(json.dumps({"type": "info", "message": "start_game not implemented yet"}))
+        else:
+            await self.send(json.dumps({"type": "info", "message": f"Unknown host action: {action}"}))
 
-        match action:
-            case "start_game":
-                print("Game started by host.")
-            case _:
-                print(f"Unknown host action: {action}")
+    # ---------------- envelope sending ----------------
 
-
-    async def send_direct_message(self, target_player_id, payload: dict):
+    async def send_direct_message(self, target_player_id: str, payload: dict):
         """
-        Send an envelope directly to a player.
+        Send an envelope directly to a player (internal channel event).
         """
         target_channel = await self.channel_manager.get_player_channel(self.room_code, target_player_id)
-        if target_channel:
-            await self.channel_layer.send(
-                target_channel,
-                {
-                    "type": "host_message",
-                    "payload": payload,
-                }
-            )
+        if not target_channel:
+            return
+
+        await self.channel_layer.send(
+            target_channel,
+            {"type": "host_message", "payload": payload}
+        )
 
     async def _send_attempt_to_player(self, player_id: str, status: bool, message: str = "", request_id=None):
         payload = build_envelope(
@@ -432,117 +410,74 @@ class HostConsumer(AsyncWebsocketConsumer):
         )
         await self.send_direct_message(player_id, payload)
 
-    async def _send_stub_state_to_player(self, player_id: str, request_id=None):
-        """
-        Temporary state push so you see the protocol works end-to-end.
-        Replace later with real engine state.
-        """
+    async def _push_state_to_player(self, player_id: str, request_id=None):
+        pid = int(player_id)
+
         await self.send_direct_message(player_id, build_envelope(
             sender="lobby",
-            header="turn_state",
-            data={"turn": True},
+            header="hand_state",
+            data=GAME_SERVICE.serialize_hand_state(self.room_code, pid),
             request_id=request_id
         ))
 
+        await self.send_direct_message(player_id, build_envelope(
+            sender="lobby",
+            header="stacks_state",
+            data=GAME_SERVICE.serialize_stacks_state(self.room_code, pid),
+            request_id=request_id
+        ))
 
-    async def broadcast_to_all_players(self, action, data):
-        """
-        Send a message to all players in the room.
-        Broadcasts game state or commands to all
-        connected players simultaneously.
-        """
+        await self.send_direct_message(player_id, build_envelope(
+            sender="lobby",
+            header="others_state",
+            data=GAME_SERVICE.serialize_others_state(self.room_code, pid),
+            request_id=request_id
+        ))
+
+        await self.send_direct_message(player_id, build_envelope(
+            sender="lobby",
+            header="turn_state",
+            data=GAME_SERVICE.serialize_turn_state(self.room_code, pid),
+            request_id=request_id
+        ))
+
+    async def _push_state_to_all_players(self):
         players = await self.channel_manager.get_all_players(self.room_code)
-        for player_id, channel_name in players.items():
-            await self.channel_layer.send(
-                channel_name,
-                {
-                    'type': 'host_message',
-                    'action': action,
-                    'data': data,
-                    "sender_id": "lobby",
+        for pid in players.keys():
+            await self._push_state_to_player(pid)
 
-                }
-            )
-
-    async def host_direct_message(self, event):
-        """Handle incoming message from a player."""
-        await self.send(json.dumps({
-            'type': 'host_direct_message',
-            'action': event['action'],
-            'data': event['data']
-        }))
-
-    async def player_connected(self, event):
-        """Handle player connection event."""
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'player_connected',
-            'data': data
-        }))
-
-    async def player_disconnected(self, event):
-        """Handle player disconnection event."""
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'player_disconnected',
-            'data': data
-        }))
-
-    async def card_used(self, event):
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'card_used',
-            'data': data
-        }))
-
-    async def card_discarded(self, event):
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'card_discarded',
-            'data': data
-        }))
-
-    async def turn_ended(self, event):
-        data = event['data']
-        await self.send(json.dumps({
-            'type': 'turn_ended',
-            'data': data
-        }))
+    # ---------------- inbound from players ----------------
 
     async def lobby_event(self, event):
-    # Only host should act on these; receiver can be used for filtering if needed
+        """
+        Optional: if you still broadcast room-level events, they will come here.
+        Keep only if you use group_send(type="lobby_event") for host UI visibility.
+        """
         await self.send(json.dumps({
             "type": "lobby_event",
-            "receiver": event["receiver"],
-            "action": event["action"],
-            "data": event["data"],
+            "receiver": event.get("receiver"),
+            "action": event.get("action"),
+            "data": event.get("data"),
             "sender_id": event.get("sender_id"),
         }))
 
     async def host_message(self, event):
         """
-        Handle incoming direct message from a player.
-        Expects event["payload"] as an envelope: {sender, header, data, request_id?}
+        Internal message from a player consumer.
+        Requires event["payload"] as an envelope.
         """
         payload = event.get("payload")
         if not payload:
-            # Backward compatibility (old internal messages)
             await self.send(json.dumps({
-                "type": "host_message",
-                "action": event.get("action"),
-                "data": event.get("data"),
-                "sender_id": event.get("sender_id", "unknown"),
+                "type": "error",
+                "message": "Malformed player message: missing payload"
             }))
             return
 
         try:
             sender, header, data, request_id = parse_payload(payload)
         except WsProtocolError as e:
-            # Can't safely reply without sender, so just log to host UI
-            await self.send(json.dumps({
-                "type": "error",
-                "message": f"Malformed player payload: {e}"
-            }))
+            await self.send(json.dumps({"type": "error", "message": f"Malformed player payload: {e}"}))
             return
 
         handlers = {
@@ -559,54 +494,51 @@ class HostConsumer(AsyncWebsocketConsumer):
 
         await handler(sender, data, request_id=request_id)
 
-    async def _send_to_player(self, player_id: str, header: str, data: dict, request_id=None):
-        payload = build_envelope(
-            sender="lobby",
-            header=header,
-            data=data,
-            request_id=request_id
-        )
-        await self.send_direct_message(
-            target_player_id=player_id,
-            action="envelope",
-            data={"payload": payload}  # not used; we will override send_direct_message next
-        )
-
-
-    # async def _handle_player_move(self, sender_id: str, data: dict):
-    #     # TEMP: just acknowledge back to that player so you confirm the round trip
-    #     await self.send_direct_message(
-    #         target_player_id=sender_id,
-    #         action="attempt",
-    #         data={"status": True, "message": "received player_move"}
-    #     )
-
-    # async def _handle_turn_end_from_player(self, sender_id: str, data: dict):
-    #     await self.send_direct_message(
-    #         target_player_id=sender_id,
-    #         action="attempt",
-    #         data={"status": True, "message": "received turn_end"}
-    #     )
+    # ---------------- handlers ----------------
 
     async def _handle_connection(self, player_id: str, data: dict, request_id=None):
-        # TODO: add player to engine here
+        try:
+            GAME_SERVICE.add_player(self.room_code, int(player_id))
+            started_now = GAME_SERVICE.start_if_ready(self.room_code)
+        except Exception as e:
+            await self._send_attempt_to_player(player_id, False, str(e), request_id=request_id)
+            return
+
         await self._send_attempt_to_player(player_id, True, "connected", request_id=request_id)
-        await self._send_stub_state_to_player(player_id, request_id=request_id)
+
+        # If the game started now (2nd player joined), everybody needs fresh state.
+        if started_now:
+            await self._push_state_to_all_players()
+        else:
+            await self._push_state_to_player(player_id, request_id=request_id)
+
 
     async def _handle_all_stacks(self, player_id: str, data: dict, request_id=None):
-        # TODO: send others_state from engine
+        # Send only others_state; frontend can request this when needed
         await self.send_direct_message(player_id, build_envelope(
             sender="lobby",
             header="others_state",
-            data={"players": []},  # stub
+            data=GAME_SERVICE.serialize_others_state(self.room_code, int(player_id)),
             request_id=request_id
         ))
 
     async def _handle_card_play(self, player_id: str, data: dict, request_id=None):
-        # TODO: translate data -> engine call
-        # For now: just acknowledge receipt
-        await self._send_attempt_to_player(player_id, True, "received card_play", request_id=request_id)
+        try:
+            GAME_SERVICE.apply_card_play(self.room_code, int(player_id), data)
+        except Exception as e:
+            await self._send_attempt_to_player(player_id, False, str(e), request_id=request_id)
+            return
+
+        await self._send_attempt_to_player(player_id, True, "", request_id=request_id)
+        await self._push_state_to_all_players()
 
     async def _handle_turn_end(self, player_id: str, data: dict, request_id=None):
-        # TODO: engine end turn + broadcast state
-        await self._send_attempt_to_player(player_id, True, "received turn_end", request_id=request_id)
+        try:
+            # implement in service if you want: advance turn, draw card, etc.
+            GAME_SERVICE.end_turn(self.room_code, int(player_id))
+        except Exception as e:
+            await self._send_attempt_to_player(player_id, False, str(e), request_id=request_id)
+            return
+
+        await self._send_attempt_to_player(player_id, True, "", request_id=request_id)
+        await self._push_state_to_all_players()

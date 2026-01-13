@@ -21,32 +21,55 @@ async def player_sender():
     async with websockets.connect(PLAYER_URL) as ws:
         print("[PLAYER] connected:", PLAYER_URL)
 
+        # 1) Wait for hand_state so we can pick a real card_id from the engine
+        hand = None
+        for i in range(20):
+            raw = await asyncio.wait_for(ws.recv(), timeout=3)
+            print(f"[PLAYER] recv (pre) #{i+1}:", raw)
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+
+            if msg.get("header") == "hand_state":
+                hand = msg["data"]["cards"]
+                break
+
+        if not hand:
+            print("[PLAYER] did not receive hand_state; cannot run engine-valid test")
+            return
+
+        # choose an organ card if possible (value == 0). fallback to first card
+        organ = next((c for c in hand if c.get("value") == 0 and c.get("color") != "special"), None)
+        chosen = organ or hand[0]
+        card_id = chosen["card_id"]
+
+        # 2) Send an organ play (valid without other players)
         test_msg = {
             "sender": "frontend",
             "header": "card_play",
-            "data": {"action": "attack", "card_id": 1, "target_id": 2},
+            "data": {"action": "organ", "card_id": card_id},
             "request_id": "req-1",
         }
 
         await ws.send(json.dumps(test_msg))
         print("[PLAYER] sent:", json.dumps(test_msg))
 
-        # Read multiple messages; stop once we get the attempt for req-1
-        for i in range(10):
+        # 3) Wait for attempt with req-1
+        for i in range(20):
             raw = await asyncio.wait_for(ws.recv(), timeout=3)
             print(f"[PLAYER] recv #{i+1}:", raw)
-
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
                 continue
 
-            # New protocol attempt
             if msg.get("header") == "attempt" and msg.get("request_id") == "req-1":
                 print("[PLAYER] got attempt for req-1:", msg)
                 return
 
-        print("[PLAYER] did not receive attempt for req-1 within 10 messages")
+        print("[PLAYER] did not receive attempt for req-1 within 20 messages")
+
 
 
 async def main():

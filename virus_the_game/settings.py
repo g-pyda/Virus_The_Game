@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'virus_game_mother',
+    'virus_the_game',
 ]
 
 ASGI_APPLICATION = 'virus_the_game.asgi.application'
