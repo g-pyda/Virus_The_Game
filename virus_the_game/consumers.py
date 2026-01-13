@@ -1,10 +1,10 @@
 import json
-import aioredis
+import redis.asyncio as redis
 from channels.generic.websocket import AsyncWebsocketConsumer
-from consumer_helpers import (
+from .consumer_helpers import (
     get_api_data, post_api_data, delete_api_data, RedisChannelManager
     )
-
+from .ws_protocol import parse_incoming, WsProtocolError, build_attempt
 
 # ==================== Game Consumer ==================== #
 
@@ -28,7 +28,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f"{self.room_code}"
 
         # Initialize Redis manager
-        self.redis = await aioredis.create_redis_pool('redis://redis:6379')
+        self.redis = redis.from_url("redis://redis:6379", decode_responses=True)
         self.channel_manager = RedisChannelManager(self.redis)
 
         await self.channel_layer.group_add(
@@ -75,8 +75,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
         # Close Redis connection
-        self.redis.close()
-        await self.redis.wait_closed()
+        await self.redis.close()
 
         print("Disconnected:", close_code)
 
@@ -88,13 +87,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         Used for game state changes that affect all players.
         """
         await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'receiver': receiver,
-                'action': action,
-                'data': data
-            }
-        )
+        self.room_group_name,
+        {
+            "type": "lobby_event",
+            "receiver": receiver,
+            "action": action,
+            "data": data,
+            "sender_id": self.player_id,
+        }
+    )
 
     async def send_direct_message(self, target_player_id, action, data):
         """
@@ -155,7 +156,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'type': 'host_message',
             'action': event['action'],
             'data': event['data'],
-            'sender_id': event['sender_id']
+            'sender_id': event['sender_id', 'lobby']
         }))
 
     # ----------------- game functions ---------------- #
@@ -206,63 +207,70 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     # --------------- tester functions ---------------- #
 
-    async def receive(self, text_data):
-        """
-        Handle incoming WebSocket messages from the player.
-        Parses action type and routes to appropriate handler 
-        (use_card, discard_card, end_turn).
-        """
-        data = json.loads(text_data)
-        action = data.get('action')
-        attempt_info = {
-            'action': action,
-        }
-        if action in [
-            "attack", "vaccinate", "heal", "organ", "discard", "special"
-             ]:
-            attempt_info.update({
-                'card_to_play': data.get('card_id'),
-            })
+    async def receive(self, text_data=None, bytes_data=None):
+        if not text_data:
+            return
+
+        try:
+            sender, header, data, request_id = parse_incoming(text_data)
+        except WsProtocolError as e:
+            # Reply to frontend with a consistent "attempt" failure
+            await self.send(build_attempt(False, str(e)))
+            return
+
+        if sender != "frontend":
+            await self.send(build_attempt(False, "Invalid sender"))
+            return
+
+        if header == "card_play":
+            await self._handle_card_play(data, request_id=request_id)
+            return
+
+        if header == "turn_end":
+            await self._handle_turn_end(data, request_id=request_id)
+            return
+
+        await self.send(build_attempt(False, f"Unknown header: {header}", request_id=request_id))
+
+    async def _handle_card_play(self, data: dict, request_id=None):
+        # TEMP: reuse your existing attempt_info construction almost verbatim,
+        # but using 'data' instead of 'data = json.loads(text_data)'
+        action = data.get("action")
+        attempt_info = {"action": action}
+
+        if action in ["attack", "vaccinate", "heal", "organ", "discard", "special"]:
+            attempt_info["card_to_play"] = data.get("card_id")
+
         if action in ["attack", "vaccinate", "heal"]:
-            attempt_info.update({
-                'target_stack': data.get('target_id'),
-            })
+            attempt_info["target_stack"] = data.get("target_id")
+
         if action == "attack":
-            attempt_info.update({
-                'target_player': data.get('target_id'),
-            })
+            attempt_info["target_player"] = data.get("target_id")
+
         if action == "special":
-            card_type = data.get('card_type')
+            card_type = data.get("card_type")
             if card_type in ["organ swap", "body swap", "thieft"]:
                 attempt_info.update({
-                    'target_player': data.get('target_id'),
-                    'target_stack': data.get('target_stack')
+                    "target_player": data.get("target_id"),
+                    "target_stack": data.get("target_stack"),
                 })
             if card_type in ["organ swap", "body swap"]:
-                attempt_info.update({
-                    'player_stack': data.get('player_stack')
-                })
+                attempt_info["player_stack"] = data.get("player_stack")
             if card_type == "epidemy":
                 attempt_info.update({
-                    'player_stacks': data.get('player_stacks'),
-                    'target_stacks': data.get('target_stacks'),
-                    'target_players': data.get('target_players'),
-                    'virus_cards': data.get('virus_cards')
+                    "player_stacks": data.get("player_stacks"),
+                    "target_stacks": data.get("target_stacks"),
+                    "target_players": data.get("target_players"),
+                    "virus_cards": data.get("virus_cards"),
                 })
 
-        await self.send_message_to_host(
-            "player's move", attempt_info
-        )
+        await self.send_message_to_host("player_move", attempt_info)
 
-        message = data.get('message')
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': message
-            }
-        )
+    async def _handle_turn_end(self, data: dict, request_id=None):
+        # normalize payload for host
+        await self.send_message_to_host("turn_end", {"action": "end_turn"})
+
 
     async def chat_message(self, event):
         """
@@ -271,9 +279,23 @@ class GameConsumer(AsyncWebsocketConsumer):
         """
 
         await self.send(json.dumps({
-            'type': 'chat',
-            'message': message
+        "type": "chat",
+        "message": event["message"],
+    }))
+    
+    async def lobby_event(self, event):
+        """
+        Handle group events sent to the room group.
+        We forward them to the websocket client so the connection doesn't crash.
+        """
+        await self.send(json.dumps({
+            "type": "lobby_event",
+            "receiver": event.get("receiver"),
+            "action": event.get("action"),
+            "data": event.get("data"),
+            "sender_id": event.get("sender_id"),
         }))
+
 
 
 class HostConsumer(AsyncWebsocketConsumer):
@@ -293,7 +315,7 @@ class HostConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f"{self.room_code}"
 
         # Initialize Redis manager
-        self.redis = await aioredis.create_redis_pool('redis://redis:6379')
+        self.redis = redis.from_url("redis://redis:6379", decode_responses=True)
         self.channel_manager = RedisChannelManager(self.redis)
 
         await self.channel_layer.group_add(
@@ -326,27 +348,27 @@ class HostConsumer(AsyncWebsocketConsumer):
         )
 
         # Close Redis connection
-        self.redis.close()
-        await self.redis.wait_closed()
+        await self.redis.close()
+
 
         print("Host disconnected:", close_code)
 
-    async def receive(self, json_data):
+    async def receive(self, text_data=None, bytes_data=None):
         """
-        Handle incoming WebSocket messages from the host.
-        Routes host commands and game logic decisions.
+        Handle incoming WebSocket messages from the host UI (browser).
         """
+        if not text_data:
+            return
 
-        data = json.loads(json_data)
-        action = data.get('action')
-        # Handle host-specific actions here
+        data = json.loads(text_data)
+        action = data.get("action")
+
         match action:
-            case 'start_game':
-                # Starting a game
-                # self.game.start_game()
+            case "start_game":
                 print("Game started by host.")
             case _:
-                print("Unknown host action.")
+                print(f"Unknown host action: {action}")
+
 
     async def send_direct_message(self, target_player_id, action, data):
         """
@@ -360,9 +382,11 @@ class HostConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.send(
                 target_channel,
                 {
-                    'type': 'host_direct_message',
+                    'type': 'host_message',
                     'action': action,
-                    'data': data
+                    'data': data,
+                    "sender_id": "lobby",
+
                 }
             )
 
@@ -377,9 +401,11 @@ class HostConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.send(
                 channel_name,
                 {
-                    'type': 'host_direct_message',
+                    'type': 'host_message',
                     'action': action,
-                    'data': data
+                    'data': data,
+                    "sender_id": "lobby",
+
                 }
             )
 
@@ -427,3 +453,53 @@ class HostConsumer(AsyncWebsocketConsumer):
             'type': 'turn_ended',
             'data': data
         }))
+
+    async def lobby_event(self, event):
+    # Only host should act on these; receiver can be used for filtering if needed
+        await self.send(json.dumps({
+            "type": "lobby_event",
+            "receiver": event["receiver"],
+            "action": event["action"],
+            "data": event["data"],
+            "sender_id": event.get("sender_id"),
+        }))
+
+    async def host_message(self, event):
+        """
+        Handle incoming direct message from a player (sent via channel_layer.send).
+        """
+        action = event.get("action")
+        data = event.get("data", {})
+        sender_id = str(event.get("sender_id"))
+
+        handlers = {
+        "player_move": self._handle_player_move,
+        "turn_end": self._handle_turn_end_from_player,
+        }
+
+        handler = handlers.get(action)
+        if not handler:
+            await self.send(json.dumps({
+                "type": "host_message",
+                "action": event.get("action"),
+                "data": event.get("data"),
+                "sender_id": event.get("sender_id", "lobby"),
+            }))
+            return
+
+        await handler(sender_id, data)
+
+    async def _handle_player_move(self, sender_id: str, data: dict):
+        # TEMP: just acknowledge back to that player so you confirm the round trip
+        await self.send_direct_message(
+            target_player_id=sender_id,
+            action="attempt",
+            data={"status": True, "message": "received player_move"}
+        )
+
+    async def _handle_turn_end_from_player(self, sender_id: str, data: dict):
+        await self.send_direct_message(
+            target_player_id=sender_id,
+            action="attempt",
+            data={"status": True, "message": "received turn_end"}
+        )
