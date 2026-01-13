@@ -283,3 +283,8 @@ Its role is to fetch the data from the players via websockets, apply them on the
     "turn" : True
 }
 ```
+
+## Frontend - 
+
+
+
