@@ -2,9 +2,14 @@ import json
 import redis.asyncio as redis
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .consumer_helpers import (
-    get_api_data, post_api_data, delete_api_data, RedisChannelManager
+    get_api_data, post_api_data, 
+    delete_api_data, RedisChannelManager
     )
-from .ws_protocol import parse_incoming, WsProtocolError, build_attempt
+from .ws_protocol import (
+    parse_incoming, parse_payload,
+    WsProtocolError, build_attempt,
+    build_envelope, build_message
+)
 
 # ==================== Game Consumer ==================== #
 
@@ -42,6 +47,15 @@ class GameConsumer(AsyncWebsocketConsumer):
             )
 
         await self.accept()
+        
+        # Notify host using documented envelope format (if host already connected)
+        payload = build_envelope(
+            sender=str(self.player_id),
+            header="connection",
+            data={"action": "add"}
+        )
+        await self.send_message_to_host(payload)
+
 
         print("Player connected to", self.room_group_name)
         players = await self.channel_manager.get_all_players(self.room_code)
@@ -116,24 +130,20 @@ class GameConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-    async def send_message_to_host(self, action, data):
+    async def send_message_to_host(self, payload: dict):
         """
-        Send a direct message to the host.
-        Uses Redis to lookup host's channel name for direct delivery.
+        Send a message envelope to the host (internal channel_layer message).
         """
-        host_channel = await self.channel_manager.get_host_channel(
-            self.room_code
-            )
+        host_channel = await self.channel_manager.get_host_channel(self.room_code)
         if host_channel:
             await self.channel_layer.send(
                 host_channel,
                 {
-                    'type': 'host_message',
-                    'action': action,
-                    'data': data,
-                    'sender_id': self.player_id
+                    "type": "host_message",
+                    "payload": payload,
                 }
             )
+
 
     async def direct_message(self, event):
         """
@@ -149,15 +159,29 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def host_message(self, event):
         """
-        Handle incoming message from host.
-        Receives direct messages from the host player.
+        Incoming internal message from host. Expect event["payload"] as an envelope.
+        Forward envelope to frontend as JSON string.
         """
-        await self.send(json.dumps({
-            'type': 'host_message',
-            'action': event['action'],
-            'data': event['data'],
-            'sender_id': event['sender_id', 'lobby']
-        }))
+        payload = event.get("payload")
+        if not payload:
+            # Fallback: keep old behavior if someone sends action/data
+            await self.send(json.dumps({
+                "sender": "lobby",
+                "header": "attempt",
+                "data": {"status": False, "message": "Malformed host message (missing payload)"}
+            }))
+            return
+
+        try:
+            sender, header, data, request_id = parse_payload(payload)
+        except WsProtocolError as e:
+            await self.send(build_attempt(False, f"Malformed host payload: {e}"))
+            return
+
+        # Forward exactly in documented format
+        await self.send(build_message(sender, header, data, request_id=request_id))
+
+
 
     # ----------------- game functions ---------------- #
 
@@ -205,8 +229,6 @@ class GameConsumer(AsyncWebsocketConsumer):
     
         print(f"Player {player_id} ended their turn")
 
-    # --------------- tester functions ---------------- #
-
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data:
             return
@@ -214,62 +236,79 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             sender, header, data, request_id = parse_incoming(text_data)
         except WsProtocolError as e:
-            # Reply to frontend with a consistent "attempt" failure
             await self.send(build_attempt(False, str(e)))
             return
 
         if sender != "frontend":
-            await self.send(build_attempt(False, "Invalid sender"))
+            await self.send(build_attempt(False, "Invalid sender", request_id=request_id))
             return
 
-        if header == "card_play":
-            await self._handle_card_play(data, request_id=request_id)
+        handlers = {
+            "card_play": self._handle_card_play,
+            "turn_end": self._handle_turn_end,
+        }
+
+        handler = handlers.get(header)
+        if not handler:
+            await self.send(build_attempt(False, f"Unknown header: {header}", request_id=request_id))
             return
 
-        if header == "turn_end":
-            await self._handle_turn_end(data, request_id=request_id)
-            return
+        await handler(data, request_id=request_id)
 
-        await self.send(build_attempt(False, f"Unknown header: {header}", request_id=request_id))
 
+    # async def _handle_card_play(self, data: dict, request_id=None):
+    #     # TEMP: reuse your existing attempt_info construction almost verbatim,
+    #     # but using 'data' instead of 'data = json.loads(text_data)'
+    #     action = data.get("action")
+    #     attempt_info = {"action": action}
+
+    #     if action in ["attack", "vaccinate", "heal", "organ", "discard", "special"]:
+    #         attempt_info["card_to_play"] = data.get("card_id")
+
+    #     if action in ["attack", "vaccinate", "heal"]:
+    #         attempt_info["target_stack"] = data.get("target_id")
+
+    #     if action == "attack":
+    #         attempt_info["target_player"] = data.get("target_id")
+
+    #     if action == "special":
+    #         card_type = data.get("card_type")
+    #         if card_type in ["organ swap", "body swap", "thieft"]:
+    #             attempt_info.update({
+    #                 "target_player": data.get("target_id"),
+    #                 "target_stack": data.get("target_stack"),
+    #             })
+    #         if card_type in ["organ swap", "body swap"]:
+    #             attempt_info["player_stack"] = data.get("player_stack")
+    #         if card_type == "epidemy":
+    #             attempt_info.update({
+    #                 "player_stacks": data.get("player_stacks"),
+    #                 "target_stacks": data.get("target_stacks"),
+    #                 "target_players": data.get("target_players"),
+    #                 "virus_cards": data.get("virus_cards"),
+    #             })
+
+    #     await self.send_message_to_host("player_move", attempt_info)
+    
     async def _handle_card_play(self, data: dict, request_id=None):
-        # TEMP: reuse your existing attempt_info construction almost verbatim,
-        # but using 'data' instead of 'data = json.loads(text_data)'
-        action = data.get("action")
-        attempt_info = {"action": action}
+        # Forward exactly what frontend sent (normalized) to host.
+        payload = build_envelope(
+            sender=str(self.player_id),
+            header="card_play",
+            data=data,
+            request_id=request_id
+        )
+        await self.send_message_to_host(payload)
 
-        if action in ["attack", "vaccinate", "heal", "organ", "discard", "special"]:
-            attempt_info["card_to_play"] = data.get("card_id")
-
-        if action in ["attack", "vaccinate", "heal"]:
-            attempt_info["target_stack"] = data.get("target_id")
-
-        if action == "attack":
-            attempt_info["target_player"] = data.get("target_id")
-
-        if action == "special":
-            card_type = data.get("card_type")
-            if card_type in ["organ swap", "body swap", "thieft"]:
-                attempt_info.update({
-                    "target_player": data.get("target_id"),
-                    "target_stack": data.get("target_stack"),
-                })
-            if card_type in ["organ swap", "body swap"]:
-                attempt_info["player_stack"] = data.get("player_stack")
-            if card_type == "epidemy":
-                attempt_info.update({
-                    "player_stacks": data.get("player_stacks"),
-                    "target_stacks": data.get("target_stacks"),
-                    "target_players": data.get("target_players"),
-                    "virus_cards": data.get("virus_cards"),
-                })
-
-        await self.send_message_to_host("player_move", attempt_info)
-
-
+    
     async def _handle_turn_end(self, data: dict, request_id=None):
-        # normalize payload for host
-        await self.send_message_to_host("turn_end", {"action": "end_turn"})
+        payload = build_envelope(
+            sender=str(self.player_id),
+            header="turn_end",
+            data={"action": "end_turn"},
+            request_id=request_id
+        )
+        await self.send_message_to_host(payload)
 
 
     async def chat_message(self, event):
@@ -370,25 +409,41 @@ class HostConsumer(AsyncWebsocketConsumer):
                 print(f"Unknown host action: {action}")
 
 
-    async def send_direct_message(self, target_player_id, action, data):
+    async def send_direct_message(self, target_player_id, payload: dict):
         """
-        Send a direct message to a specific player from the host.
-        Uses Redis to lookup target player's channel name for direct delivery.
+        Send an envelope directly to a player.
         """
-        target_channel = await self.channel_manager.get_player_channel(
-            self.room_code, target_player_id
-        )
+        target_channel = await self.channel_manager.get_player_channel(self.room_code, target_player_id)
         if target_channel:
             await self.channel_layer.send(
                 target_channel,
                 {
-                    'type': 'host_message',
-                    'action': action,
-                    'data': data,
-                    "sender_id": "lobby",
-
+                    "type": "host_message",
+                    "payload": payload,
                 }
             )
+
+    async def _send_attempt_to_player(self, player_id: str, status: bool, message: str = "", request_id=None):
+        payload = build_envelope(
+            sender="lobby",
+            header="attempt",
+            data={"status": status, "message": message},
+            request_id=request_id
+        )
+        await self.send_direct_message(player_id, payload)
+
+    async def _send_stub_state_to_player(self, player_id: str, request_id=None):
+        """
+        Temporary state push so you see the protocol works end-to-end.
+        Replace later with real engine state.
+        """
+        await self.send_direct_message(player_id, build_envelope(
+            sender="lobby",
+            header="turn_state",
+            data={"turn": True},
+            request_id=request_id
+        ))
+
 
     async def broadcast_to_all_players(self, action, data):
         """
@@ -466,40 +521,92 @@ class HostConsumer(AsyncWebsocketConsumer):
 
     async def host_message(self, event):
         """
-        Handle incoming direct message from a player (sent via channel_layer.send).
+        Handle incoming direct message from a player.
+        Expects event["payload"] as an envelope: {sender, header, data, request_id?}
         """
-        action = event.get("action")
-        data = event.get("data", {})
-        sender_id = str(event.get("sender_id"))
-
-        handlers = {
-        "player_move": self._handle_player_move,
-        "turn_end": self._handle_turn_end_from_player,
-        }
-
-        handler = handlers.get(action)
-        if not handler:
+        payload = event.get("payload")
+        if not payload:
+            # Backward compatibility (old internal messages)
             await self.send(json.dumps({
                 "type": "host_message",
                 "action": event.get("action"),
                 "data": event.get("data"),
-                "sender_id": event.get("sender_id", "lobby"),
+                "sender_id": event.get("sender_id", "unknown"),
             }))
             return
 
-        await handler(sender_id, data)
+        try:
+            sender, header, data, request_id = parse_payload(payload)
+        except WsProtocolError as e:
+            # Can't safely reply without sender, so just log to host UI
+            await self.send(json.dumps({
+                "type": "error",
+                "message": f"Malformed player payload: {e}"
+            }))
+            return
 
-    async def _handle_player_move(self, sender_id: str, data: dict):
-        # TEMP: just acknowledge back to that player so you confirm the round trip
+        handlers = {
+            "connection": self._handle_connection,
+            "all_stacks": self._handle_all_stacks,
+            "card_play": self._handle_card_play,
+            "turn_end": self._handle_turn_end,
+        }
+
+        handler = handlers.get(header)
+        if not handler:
+            await self._send_attempt_to_player(sender, False, f"Unknown header: {header}", request_id=request_id)
+            return
+
+        await handler(sender, data, request_id=request_id)
+
+    async def _send_to_player(self, player_id: str, header: str, data: dict, request_id=None):
+        payload = build_envelope(
+            sender="lobby",
+            header=header,
+            data=data,
+            request_id=request_id
+        )
         await self.send_direct_message(
-            target_player_id=sender_id,
-            action="attempt",
-            data={"status": True, "message": "received player_move"}
+            target_player_id=player_id,
+            action="envelope",
+            data={"payload": payload}  # not used; we will override send_direct_message next
         )
 
-    async def _handle_turn_end_from_player(self, sender_id: str, data: dict):
-        await self.send_direct_message(
-            target_player_id=sender_id,
-            action="attempt",
-            data={"status": True, "message": "received turn_end"}
-        )
+
+    # async def _handle_player_move(self, sender_id: str, data: dict):
+    #     # TEMP: just acknowledge back to that player so you confirm the round trip
+    #     await self.send_direct_message(
+    #         target_player_id=sender_id,
+    #         action="attempt",
+    #         data={"status": True, "message": "received player_move"}
+    #     )
+
+    # async def _handle_turn_end_from_player(self, sender_id: str, data: dict):
+    #     await self.send_direct_message(
+    #         target_player_id=sender_id,
+    #         action="attempt",
+    #         data={"status": True, "message": "received turn_end"}
+    #     )
+
+    async def _handle_connection(self, player_id: str, data: dict, request_id=None):
+        # TODO: add player to engine here
+        await self._send_attempt_to_player(player_id, True, "connected", request_id=request_id)
+        await self._send_stub_state_to_player(player_id, request_id=request_id)
+
+    async def _handle_all_stacks(self, player_id: str, data: dict, request_id=None):
+        # TODO: send others_state from engine
+        await self.send_direct_message(player_id, build_envelope(
+            sender="lobby",
+            header="others_state",
+            data={"players": []},  # stub
+            request_id=request_id
+        ))
+
+    async def _handle_card_play(self, player_id: str, data: dict, request_id=None):
+        # TODO: translate data -> engine call
+        # For now: just acknowledge receipt
+        await self._send_attempt_to_player(player_id, True, "received card_play", request_id=request_id)
+
+    async def _handle_turn_end(self, player_id: str, data: dict, request_id=None):
+        # TODO: engine end turn + broadcast state
+        await self._send_attempt_to_player(player_id, True, "received turn_end", request_id=request_id)
