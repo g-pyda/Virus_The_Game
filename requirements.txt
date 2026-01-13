@@ -4,3 +4,5 @@ dj-database-url
 uvicorn[standard]
 channels
 channels-redis
+httpx
+aioredis
