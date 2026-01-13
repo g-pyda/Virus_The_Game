@@ -1,5 +1,5 @@
 import httpx
-# import aioredis
+import aioredis
 
 
 # ----------------- API Interaction Helpers ----------------- #
@@ -128,19 +128,19 @@ class RedisChannelManager:
         """Get a specific player's channel name from Redis."""
         key = f"room:{room_code}:players"
         channel_name = await self.redis.hget(key, player_id)
-        return channel_name
+        return channel_name.decode() if channel_name else None
 
     async def get_host_channel(self, room_code):
         """Get the host's channel name from Redis."""
         key = f"room:{room_code}:host"
         channel_name = await self.redis.get(key)
-        return channel_name
+        return channel_name.decode() if channel_name else None
 
     async def get_all_players(self, room_code):
         """Get all players in a room from Redis."""
         key = f"room:{room_code}:players"
         players = await self.redis.hgetall(key)
-        return players
+        return {k.decode(): v.decode() for k, v in players.items()}
 
     async def get_room_participants(self, room_code):
         """Get all participants (players + host) from Redis."""
@@ -155,7 +155,7 @@ class RedisChannelManager:
         await self.redis.delete(f"room:{room_code}:host")
 
 
-# async def get_redis_manager():
-#     """Get or create Redis connection for channel management."""
-#     redis = await aioredis.create_redis_pool('redis://redis:6379')
-#     return RedisChannelManager(redis)
+async def get_redis_manager():
+    """Get or create Redis connection for channel management."""
+    redis = await aioredis.create_redis_pool('redis://redis:6379')
+    return RedisChannelManager(redis)
