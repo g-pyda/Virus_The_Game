@@ -18,7 +18,8 @@ def err(message: str, status_code=status.HTTP_400_BAD_REQUEST):
 
 
 class CreateGameRequestSerializer(serializers.Serializer):
-    nickname = serializers.CharField(max_length=100)
+    # nickname = serializers.CharField(max_length=100)
+    pass
 
 
 class JoinGameRequestSerializer(serializers.Serializer):
@@ -37,20 +38,20 @@ class GameViewSet(viewsets.GenericViewSet):
     queryset = Game.objects.all()
 
     def create(self, request, *args, **kwargs):
+        # Validate that request is either empty or at least not invalid.
+        # This will accept {} and also ignore extra fields by default behavior.
         req = CreateGameRequestSerializer(data=request.data)
         req.is_valid(raise_exception=True)
-        nickname = req.validated_data["nickname"]
 
         try:
             with transaction.atomic():
                 game = Game.objects.create()
-                player, _ = Player.objects.get_or_create(nickname=nickname)
-                game.players.add(player)
-                token = PlayerToken.generate(player)
         except IntegrityError:
             return err("Database error")
 
-        return created(game_id=game.id, player_id=player.id, token=token.value, game=GameSerializer(game).data)
+        # Return only the game id (per requirement)
+        return created(game_id=game.id)
+
 
     @action(detail=True, methods=["post"])
     def join(self, request, pk=None):
