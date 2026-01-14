@@ -1,5 +1,5 @@
-from card import Card, Stack, SpecialCard
-from player import Player
+from .card import Card, Stack, SpecialCard
+from .player import Player
 import random
 
 
@@ -121,7 +121,7 @@ class Game:
 
     # game flow
     def check_if_winner(self) -> bool:
-        p_id = self.player_order[self.current_player_index]
+        p_id = self.player_order[self.index_of_current_player]
         if self.players[p_id].check_win_condition():
             self.winner_id = p_id
             return True
@@ -234,14 +234,15 @@ class Game:
             raise ValueError("Not enough players to start the game!")
         self.deck.initialize_deck()
         #deal 3 cards to each player
-        for player in self.players:
+        for player_id in self.players.keys():
             for _ in range(3):
-                self.draw_card_for_player(player)
+                self.draw_card_for_player(player_id)
+
         #game starts
 
     def next_player(self):
         self.index_of_current_player = (self.index_of_current_player + 1) % self.players_number
-        return self.player_order[self.current_player_index]
+        return self.player_order[self.index_of_current_player]
     
     
 

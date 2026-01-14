@@ -5,4 +5,4 @@ uvicorn[standard]
 channels
 channels-redis
 httpx
-aioredis
+redis>=4.5

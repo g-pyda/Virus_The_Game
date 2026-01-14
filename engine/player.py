@@ -1,6 +1,6 @@
 from typing import Optional
 from dataclasses import dataclass
-from card import Card, Stack
+from .card import Card, Stack
 
 @dataclass
 class Attempt:
@@ -15,8 +15,8 @@ class Attempt:
 class SwapThiefAttempt:
     action: str                # "organ swap", "body swap" , "thieft"
     player_id: int
-    stack_id: Optional[int] = None
     target_player_id: int
+    stack_id: Optional[int] = None
     target_stack_id: Optional[int] = None
 
 @dataclass
