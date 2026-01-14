@@ -359,6 +359,15 @@ class HostConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print("Host connected to", self.room_group_name)
 
+        # Ensure room/game exists as soon as the host connects
+        try:
+            GAME_SERVICE.get_or_create(self.room_code)
+        except AttributeError:
+            # If you don't have this yet, implement it in GameService or replace
+            # with whichever call initializes room state without starting the game.
+            pass
+
+
     async def disconnect(self, close_code):
         await self.channel_manager.cleanup_room(self.room_code)
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -368,11 +377,36 @@ class HostConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         """
         Messages from host UI (browser). Optional.
-        Keep this minimal; gameplay comes from players via host_message().
+        Accept both:
+          - envelope format: {"sender":"frontend","header":"start_game","data":{...}}
+          - legacy format: {"action":"start_game"}
         """
         if not text_data:
             return
 
+        # Try envelope first (preferred)
+        try:
+            sender, header, data, request_id = parse_incoming(text_data)
+            if sender != "frontend":
+                await self.send(build_attempt(False, "Invalid sender", request_id=request_id))
+                return
+
+            if header == "start_game":
+                # Ensure game exists and/or start if ready/explicit
+                started = GAME_SERVICE.start_if_ready(self.room_code)
+                await self.send(build_attempt(True, f"start_game: {started}", request_id=request_id))
+                if started:
+                    await self._push_state_to_all_players()
+                return
+
+            await self.send(build_attempt(False, f"Unknown header: {header}", request_id=request_id))
+            return
+
+        except WsProtocolError:
+            # Fallback to legacy JSON with "action"
+            pass
+
+        # Legacy fallback
         try:
             data = json.loads(text_data)
         except json.JSONDecodeError:
@@ -381,8 +415,10 @@ class HostConsumer(AsyncWebsocketConsumer):
 
         action = data.get("action")
         if action == "start_game":
-            # Optional: call GAME_SERVICE.start_if_ready(...) or explicit start
-            await self.send(json.dumps({"type": "info", "message": "start_game not implemented yet"}))
+            started = GAME_SERVICE.start_if_ready(self.room_code)
+            await self.send(json.dumps({"type": "info", "message": f"start_game: {started}"}))
+            if started:
+                await self._push_state_to_all_players()
         else:
             await self.send(json.dumps({"type": "info", "message": f"Unknown host action: {action}"}))
 

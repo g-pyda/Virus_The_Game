@@ -106,20 +106,25 @@ def ws_card_play_to_attempt_info(
         attempt_info["target_stack_id"] = target_stack_id
         return attempt_info
 
-    # --- Discard ---
+        # --- Discard ---
     if action == "discard":
-        # The protocol doc doesn’t specify discard payload clearly.
-        # Accept a few common variants to keep frontend flexible.
+        # Frontend discards are emitted one-by-one via a single event carrying "card_id".
+        # Normalize to engine's expected list field: discard_cards_ids.
+        single_id = _optional_int(ws_data, "card_id")
+
         discard_ids = (
-            _optional_int_list(ws_data, "discard_cards_ids")
+            ([single_id] if single_id is not None else None)
+            or _optional_int_list(ws_data, "discard_cards_ids")  # legacy/batch support
             or _optional_int_list(ws_data, "discard_cards")
             or _optional_int_list(ws_data, "cards")
         )
+
         if not discard_ids:
             raise ValueError(
-                "Discard requires a list of card ids in one of: "
+                "Discard requires 'card_id' (preferred) or a list of card ids in one of: "
                 "'discard_cards_ids', 'discard_cards', or 'cards'"
             )
+
         attempt_info["discard_cards_ids"] = discard_ids
         return attempt_info
 
