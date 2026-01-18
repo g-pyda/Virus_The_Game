@@ -4,6 +4,5 @@ dj-database-url
 uvicorn[standard]
 channels
 channels-redis
-djangorestframework
 httpx
-aioredis
+redis>=4.5
