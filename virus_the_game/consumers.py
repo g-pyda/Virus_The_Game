@@ -2,6 +2,11 @@ import json
 
 import redis.asyncio as redis
 from channels.generic.websocket import AsyncWebsocketConsumer
+from consumer_helpers import (
+    get_api_data, post_api_data, delete_api_data, RedisChannelManager
+    )
+from ..engine.game import Game
+from ..engine.player import Player
 
 from .consumer_helpers import RedisChannelManager
 from .ws_protocol import (
@@ -35,6 +40,14 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # Initialize Redis manager
         self.redis = redis.from_url("redis://redis:6379", decode_responses=True)
+        self.channel_manager = RedisChannelManager(self.redis)
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+            )
+        # Initialize Redis manager
+        self.redis = await aioredis.create_redis_pool('redis://redis:6379')
         self.channel_manager = RedisChannelManager(self.redis)
 
         await self.channel_layer.group_add(
@@ -318,6 +331,11 @@ class GameConsumer(AsyncWebsocketConsumer):
         Broadcasts chat messages to the connected player.
         """
 
+    async def host_message(self, event):
+        """
+        Handle incoming message from host.
+        Receives direct messages from the host player.
+        """
         await self.send(json.dumps({
         "type": "chat",
         "message": event["message"],
@@ -336,6 +354,160 @@ class GameConsumer(AsyncWebsocketConsumer):
             "sender_id": event.get("sender_id"),
         }))
 
+    async def receive(self, message):
+        """
+        Handle incoming WebSocket messages from the player.
+        Parses action type and routes to appropriate handler
+        """
+        sender = message.get('sender', 'unknown')
+        header = message.get('header', '')
+        data = message.get('data', {})
+        match sender:
+            case 'host':
+                await self.handle_host_message()
+            case 'frontend':
+                await self.handle_player_action(header, data)
+
+    async def handle_player_action(self, header, data):
+        """
+        Handle messages received from the player.
+        Routes based on header
+        """
+        match header:
+            case 'connection':
+                await self.send_message_to_host(
+                    header,
+                    {'action': 'add',
+                     'nickname': self.nickname}
+                    )
+            case "turn_end":
+                await self.send_message_to_host(
+                    header,
+                    {'action': 'end-turn'}
+                    )
+            case 'card_play':
+                attempt_info = self.parse_player_action(data)
+                await self.send_message_to_host(
+                    header,
+                    attempt_info
+                    )
+
+    async def handle_host_message(self):
+        """
+        Handle messages received from the host.
+        Processes game state updates or commands sent by the host.
+        """
+        pass  # reaction is handled in frontend
+
+    # ------------ game logic helpers ------------------ #
+
+    def parse_player_action(self, data):
+        """
+        Route player action to the appropriate handler method.
+        Parses action type and extracts relevant parameters.
+        """
+
+        action = data.get('action')
+
+        # Route to appropriate handler based on action type
+        if action == 'attack':
+            attempt_info = self.get_attack_attempt_info(data)
+        elif action == 'vaccinate':
+            attempt_info = self.get_vaccinate_attempt_info(data)
+        elif action == 'heal':
+            attempt_info = self.get_heal_attempt_info(data)
+        elif action == 'organ':
+            attempt_info = self.get_organ_attempt_info(data)
+        elif action == 'discard':
+            attempt_info = self.get_discard_attempt_info(data)
+        elif action == 'special':
+            attempt_info = self.get_special_attempt_info(data)
+        else:
+            attempt_info = {'action': action}
+
+        return attempt_info
+
+    def get_attack_attempt_info(self, data):
+        """Extract action info for attack action."""
+        return {
+            'action': 'attack',
+            'card_to_play': data.get('card_id'),
+            'target_stack': data.get('target_id'),
+            'target_player': data.get('target_id'),
+        }
+
+    def get_vaccinate_attempt_info(self, data):
+        """Extract action info for vaccinate action."""
+        return {
+            'action': 'vaccinate',
+            'card_to_play': data.get('card_id'),
+            'target_stack': data.get('target_id'),
+        }
+
+    def get_heal_attempt_info(self, data):
+        """Extract action info for heal action."""
+        return {
+            'action': 'heal',
+            'card_to_play': data.get('card_id'),
+            'target_stack': data.get('target_id'),
+        }
+
+    def get_organ_attempt_info(self, data):
+        """Extract action info for organ action."""
+        return {
+            'action': 'organ',
+            'card_to_play': data.get('card_id'),
+        }
+
+    def get_discard_attempt_info(self, data):
+        """Extract action info for discard action."""
+        return {
+            'action': 'discard',
+            'card_to_play': data.get('card_id'),
+        }
+
+    def get_special_attempt_info(self, data):
+        """Extract action info for special action based on card type."""
+        card_type = data.get('card_type')
+        attempt_info = {
+            'action': 'special',
+            'card_type': card_type,
+            'card_to_play': data.get('card_id'),
+        }
+
+        if card_type in ["organ swap", "body swap", "theft"]:
+            attempt_info.update({
+                'target_player': data.get('target_id'),
+                'target_stack': data.get('target_stack')
+            })
+
+        if card_type in ["organ swap", "body swap"]:
+            attempt_info.update({
+                'player_stack': data.get('player_stack')
+            })
+
+        if card_type == "epidemy":
+            attempt_info.update({
+                'player_stacks': data.get('player_stacks'),
+                'target_stacks': data.get('target_stacks'),
+                'target_players': data.get('target_players'),
+                'virus_cards': data.get('virus_cards')
+            })
+
+        return attempt_info
+
+
+# =================== Host Consumer ==================== #
+
+
+class HostConsumer(AsyncWebsocketConsumer):
+    """
+    WebSocket consumer for game host.
+    Manages room channel registry, broadcasts game state to players,
+    and handles direct messaging.
+    """
+
+    # ------------- connection functions -------------- #
 
 
 class HostConsumer(AsyncWebsocketConsumer):
@@ -354,6 +526,9 @@ class HostConsumer(AsyncWebsocketConsumer):
         self.channel_manager = RedisChannelManager(self.redis)
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.channel_manager.set_host(self.room_code, self.channel_name)
+
+        # Register host's channel name in Redis
         await self.channel_manager.set_host(self.room_code, self.channel_name)
 
         await self.accept()

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Virus Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="game-container">
+        <div class="top-bar">
+            <div class="draw-pile">
+                <div class="pile-icon">
+                    <div class="pile-count" id="drawCount">36</div>
+                </div>
+                <div class="pile-label">Draw</div>
+            </div>
+
+            <div class="game-info">
+                <span class="round-text" id="roundText">Round 3</span>
+                <span class="player-text" id="playerText">Player 3</span>
+            </div>
+
+            <div class="rejected-pile">
+                <div class="pile-icon">
+                    <div class="pile-count" id="rejectedCount">15</div>
+                </div>
+                <div class="pile-label">Rejected</div>
+            </div>
+        </div>
+
+        <div class="players-area">
+            <div class="player-card">
+                <div class="player-header">Player 1</div>
+                <div class="player-body"></div>
+                <div class="player-footer">
+                    <div class="card-icon">
+                        <div class="card-count" id="player1Count">3</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="player-card">
+                <div class="player-header">Player 2</div>
+                <div class="player-body"></div>
+                <div class="player-footer">
+                    <div class="card-icon">
+                        <div class="card-count" id="player2Count">3</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="player-card">
+                <div class="player-header">Player 3</div>
+                <div class="player-body"></div>
+                <div class="player-footer">
+                    <div class="card-icon">
+                        <div class="card-count" id="player3Count">2</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="player-card">
+                <div class="player-header">Player 4</div>
+                <div class="player-body"></div>
+                <div class="player-footer">
+                    <div class="card-icon">
+                        <div class="card-count" id="player4Count">3</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../scripts/gameplay_laptop.js"></script>
+</body>
+</html>
