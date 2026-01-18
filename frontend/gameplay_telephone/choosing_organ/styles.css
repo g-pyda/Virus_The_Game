@@ -1,0 +1,100 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: Arial, sans-serif;
+    background-color: #6CBF6C;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+.container {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.player-title {
+    font-size: 48px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 40px;
+    text-align: center;
+}
+.organs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    margin-bottom: 50px;
+    width: 100%;
+    padding: 0 30px;
+}
+.organ-slot {
+    aspect-ratio: 1;
+    background-color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+.organ-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.organ-slot.available:hover {
+    transform: scale(1.05);
+}
+.organ-slot.available:active {
+    transform: scale(0.98);
+}
+.organ-slot.unavailable {
+    cursor: not-allowed;
+}
+.organ-slot.unavailable::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(128, 128, 128, 0.6);
+    pointer-events: none;
+}
+.organ-slot:nth-child(5) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 15px);
+}
+.opponent-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 30px;
+    text-align: center;
+}
+.continue-btn {
+    font-size: 32px;
+    font-weight: bold;
+    color: #000000;
+    background-color: #C8C8C8;
+    border: 3px solid #000000;
+    border-radius: 25px;
+    padding: 15px 50px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.continue-btn:hover {
+    background-color: #B8B8B8;
+}
+.continue-btn:active {
+    background-color: #A8A8A8;
+}
