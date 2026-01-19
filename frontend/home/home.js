@@ -1,4 +1,4 @@
-import { sendRequest } from "./common/api_handlers.js";
+import { sendRequest } from "/scripts/common/api_handlers.js";
 
 const btnHost = document.getElementById('btn_host');
 const btnJoin = document.getElementById('btn_join');

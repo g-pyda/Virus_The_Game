@@ -9,4 +9,6 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate && uvicorn virus_the_game.asgi:application --host 0.0.0.0 --port 8000"]
+RUN python manage.py migrate --verbosity 3
+
+CMD ["uvicorn", "virus_the_game.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

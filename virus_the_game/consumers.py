@@ -2,11 +2,11 @@ import json
 
 import redis.asyncio as redis
 from channels.generic.websocket import AsyncWebsocketConsumer
-from consumer_helpers import (
+from .consumer_helpers import (
     get_api_data, post_api_data, delete_api_data, RedisChannelManager
     )
-from ..engine.game import Game
-from ..engine.player import Player
+from engine.game import Game
+from engine.player import Player
 
 from .consumer_helpers import RedisChannelManager
 from .ws_protocol import (

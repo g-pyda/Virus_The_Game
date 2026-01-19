@@ -1,8 +1,9 @@
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status, viewsets, mixins
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
 from .models import Game, Player, PlayerToken
 from .serializers import GameSerializer, PlayerSerializer
@@ -18,8 +19,7 @@ def err(message: str, status_code=status.HTTP_400_BAD_REQUEST):
 
 
 class CreateGameRequestSerializer(serializers.Serializer):
-    # nickname = serializers.CharField(max_length=100)
-    pass
+    nickname = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
 
 class JoinGameRequestSerializer(serializers.Serializer):
@@ -36,42 +36,52 @@ class JoinGameRequestSerializer(serializers.Serializer):
 
 class GameViewSet(viewsets.GenericViewSet):
     queryset = Game.objects.all()
+    permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
         # Validate that request is either empty or at least not invalid.
         # This will accept {} and also ignore extra fields by default behavior.
-        req = CreateGameRequestSerializer(data=request.data)
-        req.is_valid(raise_exception=True)
-
         try:
+            req = CreateGameRequestSerializer(data=request.data)
+            req.is_valid(raise_exception=True)
+
             with transaction.atomic():
                 game = Game.objects.create()
-        except IntegrityError:
-            return err("Database error")
-
-        # Return only the game id (per requirement)
-        return created(game_id=game.id)
+            
+            # Return only the game id (per requirement)
+            return created(game_id=game.id)
+        except IntegrityError as e:
+            return err(f"Database error: {str(e)}")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return err(f"Server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
     @action(detail=True, methods=["post"])
     def join(self, request, pk=None):
-        game = self.get_object()
+        try:
+            game = self.get_object()
 
-        req = JoinGameRequestSerializer(data=request.data)
-        req.is_valid(raise_exception=True)
-        nickname = req.validated_data["nickname"]
+            req = JoinGameRequestSerializer(data=request.data)
+            req.is_valid(raise_exception=True)
+            nickname = req.validated_data["nickname"]
 
-        with transaction.atomic():
-            player, _ = Player.objects.get_or_create(nickname=nickname)
-            token = PlayerToken.generate(player)
-            game.players.add(player)
+            with transaction.atomic():
+                player, _ = Player.objects.get_or_create(nickname=nickname)
+                token = PlayerToken.generate(player)
+                game.players.add(player)
 
-        return ok(
-            player_id=player.id,
-            game_id=game.id,
-            token=token.value,
-            game=GameSerializer(game).data,
-        )
+            return ok(
+                player_id=player.id,
+                game_id=game.id,
+                token=token.value,
+                game=GameSerializer(game).data,
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return err(f"Join error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=["get"])
     def state(self, request, pk=None):

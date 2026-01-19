@@ -16,7 +16,7 @@ class CardSerializer(serializers.ModelSerializer):
 
 class GameSerializer(serializers.ModelSerializer):
     players = PlayerSerializer(many=True, read_only=True)
-    winner = PlayerSerializer(source="winner_id", read_only=True)
+    winner = PlayerSerializer(read_only=True)
 
     class Meta:
         model = Game

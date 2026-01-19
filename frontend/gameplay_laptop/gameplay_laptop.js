@@ -1,4 +1,4 @@
-import handleWebsocketMessages from './gameplay_host/websocket_handlers.js';
+import handleWebsocketMessages from '/scripts/gameplay_host/websocket_handlers.js';
 
 const game_id = localStorage.getItem('game_id');
 

@@ -1,4 +1,4 @@
-import {sendRequest} from "./common/api_handlers"
+import {sendRequest} from "/scripts/common/api_handlers.js"
 
 let form = document.getElementById('player-form');
 
@@ -15,7 +15,7 @@ form.onsubmit = async function(e) {
 
         localStorage.setItem('playerToken', response.token);
         localStorage.setItem('playerName', nickname);
-        window.location.href = `/game/${game_id}/${player_id}`;
+        window.location.href = `/game/${game_id}/deck/`;
     } catch (error) {
         alert(error.message);
     }
