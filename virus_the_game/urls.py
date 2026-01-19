@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from views import game_urls
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -25,6 +27,5 @@ urlpatterns = [
     path("api/", include("backend.urls")),
 
     # Optional: if you still want a homepage route, point it to backend for now
-    path("", include("backend.urls")),
+    path("", include(game_urls)),
 ]
-
