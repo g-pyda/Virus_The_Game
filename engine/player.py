@@ -7,7 +7,7 @@ class Attempt:
     action: str                # "attack", "heal", "organ", "discard", "vaccinate"
     card: Optional['Card'] = None      # Card to play
     target_player_id: Optional[int] = None  # Needed for attack/steal
-    target_stack: Optional['Stack'] = None    # Which stack to affect
+    target_stack_id: Optional[int] = None    # Which stack to affect
     # target_stack_index: Optional[int] = None  #do stacks have incides?
     discard_cards_ids: Optional[list[int]] = None  # For discard action
     
@@ -15,17 +15,17 @@ class Attempt:
 class SwapThiefAttempt:
     action: str                # "organ swap", "body swap" , "thieft"
     player_id: int
-    stack: Optional['Stack'] = None
+    stack_id: Optional[int] = None
     target_player_id: int
-    target_stack: Optional['Stack'] = None
+    target_stack_id: Optional[int] = None
 
 @dataclass
 class EpidemyAttempt:
     action: str                # "epidemy"
     player_id: int
     virus_cards_ids: list[int]  # List of virus cards to give away 
-    player_stacks: list['Stack']  # List of player stacks to remove virus cards from
-    target_stacks: list['Stack']  # List of target stacks to receive the virus cards
+    player_stacks_ids: list[int]  # List of player stacks to remove virus cards from
+    target_stacks_ids: list[int]  # List of target stacks to receive the virus cards
     target_players_ids: list[int]  # List of target players to receive the virus cards
     #virus cards index corresponds to target players index and target stacks index
 
@@ -51,21 +51,21 @@ class Player:
                     action="attack",
                     card=self.get_card_from_hand(attempt_info["card_id"]),
                     target_player_id=attempt_info["target_player_id"],
-                    target_stack=attempt_info["target_stack"],
+                    target_stack_id=attempt_info["target_stack_id"],
                 )
 
             case "vaccinate": #add vaccine to a healthy card
                 return Attempt(
                     action="vaccinate",
                     card=self.get_card_from_hand(attempt_info["card_id"]),
-                    target_stack=attempt_info["target_stack"],
+                    target_stack_id=attempt_info["target_stack_id"],
                 )
             
             case "heal": #heal a virus
                 return Attempt(
                     action="heal",
                     card=self.get_card_from_hand(attempt_info["card_id"]),
-                    target_stack=attempt_info["target_stack"], 
+                    target_stack_id=attempt_info["target_stack_id"], 
                 )
 
             case "organ": #put out an organ
@@ -91,9 +91,9 @@ class Player:
                     return SwapThiefAttempt(
                         action=card_to_play.card_type,
                         player_id=self.id,
-                        stack=attempt_info["stack"],
+                        stack_id=attempt_info["stack_id"],
                         target_player_id=attempt_info["target_player_id"],
-                        target_stack=attempt_info["target_stack"],
+                        target_stack_id=attempt_info["target_stack_id"],
                     )
                 
                 elif card_to_play.card_type == "thieft":
@@ -101,7 +101,7 @@ class Player:
                         action="thieft",
                         player_id=self.id,
                         target_player_id=attempt_info["target_player_id"],
-                        target_stack=attempt_info["target_stack"],
+                        target_stack_id=attempt_info["target_stack_id"],
                     )
 
                 
@@ -115,8 +115,8 @@ class Player:
                         action="epidemy",
                         player_id=self.id,
                         virus_cards_ids=attempt_info["virus_cards_ids"],  #list of virus cards to give away 
-                        player_stacks=attempt_info["player_stacks"], #list of player's stacks to remove virus cards from  
-                        target_stacks=attempt_info["target_stacks"], #list of target stacks to receive the virus cards 
+                        player_stacks_ids=attempt_info["player_stacks_ids"], #list of player's stacks to remove virus cards from  
+                        target_stacks_ids=attempt_info["target_stacks_ids"], #list of target stacks to receive the virus cards 
                         target_players_ids=attempt_info ["target_players_ids"], #list of target players to receive the virus cards 
                     )
                 else:
