@@ -50,6 +50,7 @@ print("Allowed hosts:", ALLOWED_HOSTS)
 
 INSTALLED_APPS = [
     'channels',
+    'rest_framework',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -58,8 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # 'virus_game_mother',
-    'rest_framework',
+    'virus_the_game',
     'backend',
 ]
 
@@ -98,3 +98,18 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+# Static files configuration
+import os
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'frontend'),
+]
+
+# REST Framework configuration
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
