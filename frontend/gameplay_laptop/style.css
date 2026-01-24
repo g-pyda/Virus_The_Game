@@ -18,7 +18,7 @@ body {
 }
 
 .game-container {
-    width: 1400px;
+    width: 2500px;
     height: 900px;
 }
 
@@ -99,7 +99,7 @@ body {
 
 .players-area {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 15px;
 }
 
