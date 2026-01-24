@@ -20,7 +20,7 @@ body {
 }
 
 .leaderboard-title {
-    font-size: 6rem;
+    font-size: 64px;
     text-align: center;
     margin-bottom: 40px;
     color: #4a148c;
@@ -46,7 +46,7 @@ body {
     background: linear-gradient(145deg, #d8d0dc, #bdb3c2);
     padding: 20px;
     text-align: center;
-    font-size: 1.8rem;
+    font-size: 28px;
     font-weight: bold;
     color: #4a148c;
     box-shadow:
@@ -67,7 +67,7 @@ body {
 .games-cell {
     padding: 25px;
     text-align: center;
-    font-size: 2rem;
+    font-size: 32px;
     font-weight: bold;
     color: #4a148c;
     box-shadow:
@@ -109,7 +109,7 @@ body {
 
 @media (max-width: 768px) {
     .leaderboard-title {
-        font-size: 2.5rem;
+        font-size: 40px;
     }
 
     .table-header,
@@ -119,14 +119,14 @@ body {
     }
 
     .header-cell {
-        font-size: 1.2rem;
+        font-size: 20px;
         padding: 15px;
     }
 
     .place-cell,
     .name-cell,
     .games-cell {
-        font-size: 1.5rem;
+        font-size: 24px;
         padding: 15px;
     }
 }
