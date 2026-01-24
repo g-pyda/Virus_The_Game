@@ -1,4 +1,4 @@
-import handleWebsocketMessages from '/scripts/gameplay_host/websocket_handlers.js';
+import handleWebsocketMessages, { initializeHostPage } from '/scripts/gameplay_host/websocket_handlers.js';
 import { handleStartButton, handleNewGameButton } from '/scripts/gameplay_host/button_handlers.js';
 
 const game_id = localStorage.getItem('game_id');
@@ -20,8 +20,11 @@ socket.onopen = () => console.log("HOST WS connected:", socketUrl);
 socket.onerror = (e) => console.error("HOST WS error:", e);
 socket.onclose = () => console.log("HOST WS closed");
 
-// bind buttons after DOM is ready
+// bind buttons and initialize page after DOM is ready
 window.addEventListener("DOMContentLoaded", () => {
+  // Initialize game ID display
+  initializeHostPage();
+  
   const startBtn = document.getElementById("startGameBtn");
   if (startBtn) startBtn.addEventListener("click", handleStartButton);
 

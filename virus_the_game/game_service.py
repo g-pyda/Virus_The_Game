@@ -30,6 +30,13 @@ class GameService:
             name = f"Player {player_id}"
         return game.add_player(name=name, player_id=player_id)
 
+    def remove_player(self, room_code: str, player_id: int):
+        """
+        Remove a player from the game.
+        """
+        game = self.get_or_create(room_code)
+        return game.remove_player(player_id)
+
     def start_if_ready(self, room_code: str) -> bool:
         """
         Start the game once there are >=2 players and the deck is not initialized.
