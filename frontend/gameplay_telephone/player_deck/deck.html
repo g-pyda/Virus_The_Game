@@ -5,32 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player X</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="cards_dictionary.js"></script>
+        <script>
+        window.onload = function() {
+            setCardImage("card1", "medicines", "blue");
+            setCardImage("card2", "organs", "heart");
+            setCardImage("card3", "virus", "red");
+        };
+    </script>
 </head>
 <body>
     <div class="container">
         <h1>Player X</h1>
 
         <div class="card-row">
-            <img src="cards/card.png" alt="Card" class="card">
+            <img id="card1" src="cards/card.png" alt="Card" class="card">
             <div class="buttons">
-                <button class="btn">Play</button>
-                <button class="btn">Discard</button>
+                <button class="btn" onclick="setCardImage('card1', 'medicines', 'red');">Play</button>
+                <button class="btn" onclick="setCardImage('card1', 'back'); disableAllPlayButtons();">Discard</button>
             </div>
         </div>
 
         <div class="card-row">
-            <img src="cards/card.png" alt="Card" class="card">
+            <img id="card2" src="cards/card.png" alt="Card" class="card">
             <div class="buttons">
-                <button class="btn">Play</button>
-                <button class="btn">Discard</button>
+                <button class="btn" onclick="setCardImage('card2', 'organs', 'brain');">Play</button>
+                <button class="btn" onclick="setCardImage('card2', 'back'); disableAllPlayButtons();">Discard</button>
             </div>
         </div>
 
         <div class="card-row">
-            <img src="cards/card.png" alt="Card" class="card">
+            <img id="card3" src="cards/card.png" alt="Card" class="card">
             <div class="buttons">
-                <button class="btn">Play</button>
-                <button class="btn">Discard</button>
+                <button class="btn" onclick="setCardImage('card3', 'virus', 'rainbow');">Play</button>
+                <button class="btn" onclick="setCardImage('card3', 'back'); disableAllPlayButtons();">Discard</button>
             </div>
         </div>
 

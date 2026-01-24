@@ -81,7 +81,8 @@ body {
     margin-bottom: 30px;
     text-align: center;
 }
-.continue-btn {
+.continue-btn,
+.back-btn{
     font-size: 32px;
     font-weight: bold;
     color: #000000;
@@ -92,9 +93,11 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
 }
-.continue-btn:hover {
+.continue-btn:hover,
+.back-btn:hover{
     background-color: #B8B8B8;
 }
-.continue-btn:active {
+.continue-btn:active,
+.back-btn:active{
     background-color: #A8A8A8;
 }
