@@ -3,20 +3,46 @@
 
 const game_id = localStorage.getItem("game_id");
 const player_id = localStorage.getItem("player_id");
+const playerName = localStorage.getItem("playerName") || `Player ${player_id}`;
 
 if (!game_id || !player_id) {
   alert("Missing game_id or player_id. Please join the game again.");
+}
+
+let title = document.querySelector("title");
+if (title) {
+  title.textContent = `Virus The Game - ${playerName}`;
+}
+
+let h1 = document.querySelector("h1");
+if (h1) {
+  h1.textContent = `${playerName}`;
 }
 
 const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
 const socketUrl = `${ws_scheme}://${window.location.host}/ws/game/${String(game_id)}/player/${String(player_id)}/`;
 const socket = new WebSocket(socketUrl);
 
-window.playerSocket = socket; // helpful for debugging
+localStorage.playerSocket = socket;
 
-let lastHandState = []; // we store latest cards so we can map buttons to card_id
+let lastHandState = [];
 
-socket.onopen = () => console.log("PLAYER WS connected:", socketUrl);
+socket.onopen = () => {
+  console.log("PLAYER WS connected:", socketUrl);
+  
+  // Send connection message with player nickname
+  const connectionMessage = {
+    sender: "frontend",
+    header: "connection",
+    data: {
+      action: "add_to_lobby",
+      nickname: playerName
+    }
+  };
+  socket.send(JSON.stringify(connectionMessage));
+  console.log("PLAYER WS: sent connection with nickname:", playerName);
+};
+
 socket.onerror = (e) => console.error("PLAYER WS error:", e);
 socket.onclose = () => console.log("PLAYER WS closed");
 
@@ -274,4 +300,5 @@ if (continueBtn) {
   continueBtn.onclick = () => {
     sendEnvelope("turn_end", { action: "end_turn" });
   };
+  setTurn(false);
 }
