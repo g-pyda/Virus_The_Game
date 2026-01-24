@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from game import Game
 
 colors = ["red", "green", "blue", "yellow", "rainbow"]
 status = ["healthy", "sick", "vaccinated", "immune", "dead"]
@@ -17,11 +16,15 @@ class Card:
 class Stack:
     #stack for a card (to add viruses or vaccines)
     # value 2 = immune, -2 = dead, 1 = vaccinated, -1 = sick
+    base_id: int = 0
 
     def __init__(self, Card):
         if(Card.value != 0):
             raise TypeError("Your first card of the color has to be an organ!") 
         else:
+            self.id = Stack.base_id
+            Stack.base_id += 1
+
             self.cards = []
             self.stack_value = 0
             self.status = "healthy"

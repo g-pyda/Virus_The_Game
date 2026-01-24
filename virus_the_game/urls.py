@@ -16,6 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from django.views.static import serve
+import os
+
+from .views import game_urls
+
+# Serve scripts and other frontend assets
+def serve_frontend_file(request, path):
+    frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend')
+    return serve(request, path, document_root=frontend_dir)
 
 
 urlpatterns = [
@@ -24,7 +35,13 @@ urlpatterns = [
     # Your REST API (DRF)
     path("api/", include("backend.urls")),
 
-    # Optional: if you still want a homepage route, point it to backend for now
-    path("", include("backend.urls")),
+    # Game routes (from game_urls) - these take priority
+    path("", include(game_urls)),
+
+    # Serve frontend static assets (scripts, styles, etc.) - catch-all at the end
+    path("<path:path>", serve_frontend_file),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

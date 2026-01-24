@@ -2,12 +2,10 @@
 <html>
 <head>
     <title>Virus Game</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/gameplay_laptop/style.css">
 </head>
 <body>
     <div id="app"></div>
-    <script src="/frontend/main.js"></script>
-
     <div class="game-container">
         <div class="top-bar">
             <div class="draw-pile">
@@ -23,12 +21,17 @@
                 <span class="player-text" id="playerText">Player 3</span>
             </div>
 
-            <div class="rejected-pile">
+            <!-- <div class="rejected-pile">
                 <div class="pile-icon">
                     <div class="pile-count" id="rejectedCount">15</div>
                 </div>
                 <div class="pile-label">Rejected</div>
+            </div> -->
+            <div class="host-controls">
+                <button id="startGameBtn" type="button">Start game</button>
+                <button id="newGameBtn" type="button">New game</button>
             </div>
+
         </div>
 
     <div class="players-area">
@@ -342,5 +345,6 @@
     <div class="start-game-overlay" id="startGameOverlay">
         <button class="start-game-btn" onclick="startGame()">Start Game</button>
     </div>
+    <script type="module" src="/gameplay_laptop/gameplay_laptop.js"></script>
 </body>
 </html>
