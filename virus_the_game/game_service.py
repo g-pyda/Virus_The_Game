@@ -30,14 +30,22 @@ class GameService:
             name = f"Player {player_id}"
         return game.add_player(name=name, player_id=player_id)
 
-    def start_if_ready(self, room_code: str) -> None:
+    def start_if_ready(self, room_code: str) -> bool:
         """
-        For now: start automatically once there are >=2 players and deck not initialized.
-        Adjust to your lobby flow later.
+        Start the game once there are >=2 players and the deck is not initialized.
+        Returns True if the game was started in this call.
         """
         game = self.get_or_create(room_code)
-        if len(game.players) >= 2 and not game.deck.cards and not game.deck.discard_pile:
+
+        # already started -> do nothing
+        if game.deck.cards or game.deck.discard_pile:
+            return False
+
+        if len(game.players) >= 2:
             game.start_game()
+            return True
+
+        return False
 
     # ---- serialization to websocket protocol ----
 
@@ -73,6 +81,31 @@ class GameService:
         game = self.get_or_create(room_code)
         current_player_id = game.player_order[game.index_of_current_player] if game.player_order else None
         return {"turn": (current_player_id == player_id)}
+    
+    def serialize_host_state_change(self, room_code: str) -> Dict[str, Any]:
+        game = self.get_or_create(room_code)
+
+        # simple counts (deck.cards is dict, discard_pile is dict in your engine)
+        draw = len(game.deck.cards) if hasattr(game.deck, "cards") else 0
+        rejected = len(game.deck.discard_pile) if hasattr(game.deck, "discard_pile") else 0
+
+        players = []
+        current_player_id = game.player_order[game.index_of_current_player] if game.player_order else None
+        for pid in game.player_order:
+            p = game.players[pid]
+            players.append({
+                "id": p.id,
+                "cards_nr": len(p.on_hand),
+                "turn": (pid == current_player_id),
+            })
+
+        return {
+            "round": getattr(game, "turn_number", 0),
+            "draw": draw,
+            "rejected": rejected,
+            "players": players,
+        }
+
 
     # ---- helpers ----
 
@@ -114,20 +147,3 @@ class GameService:
 
         # Advance turn
         game.next_player()
-
-def start_if_ready(self, room_code: str) -> bool:
-    """
-    Start the game once there are >=2 players and the deck is not initialized.
-    Returns True if the game was started in this call.
-    """
-    game = self.get_or_create(room_code)
-
-    # already started (deck initialized) -> do nothing
-    if game.deck.cards or game.deck.discard_pile:
-        return False
-
-    if len(game.players) >= 2:
-        game.start_game()
-        return True
-
-    return False
