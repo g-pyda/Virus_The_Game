@@ -69,7 +69,8 @@ body {
     cursor: not-allowed;
 }
 
-.continue-button {
+.continue-button,
+.back-button{
     width: 200px;
     height: 70px;
     background-color: #C0C0C0;
@@ -85,10 +86,12 @@ body {
     justify-content: center;
 }
 
-.continue-button:hover {
+.continue-button:hover,
+.back-button:hover{
     background-color: #B0B0B0;
 }
 
-.continue-button:active {
+.continue-button:active
+.back-button:active{
     background-color: #A0A0A0;
 }
