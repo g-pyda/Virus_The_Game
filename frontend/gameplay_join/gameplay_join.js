@@ -13,11 +13,11 @@ form.onsubmit = async function(e) {
         const response = await sendRequest("POST", `/api/games/${game_id}/`, { player_name: nickname });
         const player_id = response.player_id;
 
-        localStorage.setItem("game_id", game_id);
-        localStorage.setItem("player_id", player_id);
+        window.localStorage.setItem("game_id", game_id);
+        window.localStorage.setItem("player_id", player_id);
 
-        localStorage.setItem('playerToken', response.token);
-        localStorage.setItem('playerName', nickname);
+        window.localStorage.setItem('playerToken', response.token);
+        window.localStorage.setItem('playerName', nickname);
         window.location.href = `/game/${game_id}/deck/`;
     } catch (error) {
         alert(error.message);

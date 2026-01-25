@@ -26,6 +26,7 @@ from .views import game_urls
 # Serve scripts and other frontend assets
 def serve_frontend_file(request, path):
     frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend')
+    
     return serve(request, path, document_root=frontend_dir)
 
 

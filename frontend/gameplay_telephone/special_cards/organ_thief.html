@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organ Thief</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="player-title">Organ Thief</h1>
+        <p class="instruction">Select a player to steal an organ from:</p>
+        
+        <div class="player-select" id="player-select"></div>
+        
+        <div id="organs-section" style="display: none;">
+            <p class="instruction opponent-title">Select an organ to steal:</p>
+            <div class="organs-grid" id="organs-grid"></div>
+        </div>
+        
+        <button class="cancel-btn" onclick="cancelSelection()">Cancel</button>
+    </div>
+    
+    <script src="organ_thief.js"></script>
+</body>
+</html>

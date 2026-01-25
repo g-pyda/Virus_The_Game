@@ -1,0 +1,132 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #6CBF6C;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.leaderboard-container {
+    width: 100%;
+    max-width: 900px;
+}
+
+.leaderboard-title {
+    font-size: 64px;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #4a148c;
+    font-weight: bold;
+    text-shadow:
+        3px 3px 0px #fff;
+    letter-spacing: 2px;
+}
+
+.leaderboard-table {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 120px 1fr 120px;
+    gap: 20px;
+}
+
+.header-cell {
+    background: linear-gradient(145deg, #d8d0dc, #bdb3c2);
+    padding: 20px;
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: #4a148c;
+    box-shadow:
+        4px 4px 8px rgba(0, 0, 0, 0.3),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.1),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.8);
+    border: 2px solid #9c88a8;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 120px;
+    gap: 20px;
+}
+
+.place-cell,
+.name-cell,
+.games-cell {
+    padding: 25px;
+    text-align: center;
+    font-size: 32px;
+    font-weight: bold;
+    color: #4a148c;
+    box-shadow:
+        5px 5px 10px rgba(0, 0, 0, 0.3),
+        inset -3px -3px 6px rgba(0, 0, 0, 0.15),
+        inset 3px 3px 6px rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.rank-1 .place-cell,
+.rank-1 .name-cell,
+.rank-1 .games-cell {
+    background: linear-gradient(145deg, #9c27b0, #7b1fa2);
+}
+
+.rank-2 .place-cell,
+.rank-2 .name-cell,
+.rank-2 .games-cell {
+    background: linear-gradient(145deg, #ab47bc, #8e24aa);
+}
+
+.rank-3 .place-cell,
+.rank-3 .name-cell,
+.rank-3 .games-cell {
+    background: linear-gradient(145deg, #ba68c8, #9c27b0);
+}
+
+.rank-4 .place-cell,
+.rank-4 .name-cell,
+.rank-4 .games-cell {
+    background: linear-gradient(145deg, #ce93d8, #ab47bc);
+}
+
+.rank-5 .place-cell,
+.rank-5 .name-cell,
+.rank-5 .games-cell {
+    background: linear-gradient(145deg, #e1bee7, #ce93d8);
+}
+
+@media (max-width: 768px) {
+    .leaderboard-title {
+        font-size: 40px;
+    }
+
+    .table-header,
+    .table-row {
+        grid-template-columns: 80px 1fr 80px;
+        gap: 10px;
+    }
+
+    .header-cell {
+        font-size: 20px;
+        padding: 15px;
+    }
+
+    .place-cell,
+    .name-cell,
+    .games-cell {
+        font-size: 24px;
+        padding: 15px;
+    }
+}

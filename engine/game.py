@@ -109,22 +109,28 @@ class Game:
         
     def get_stack_by_id(self, stack_id: int):
             # find a stack and its owner by stack_id
+            print(f"[DEBUG] get_stack_by_id called with stack_id={stack_id}", flush=True)
             if stack_id is None: return None, None
             for p_id in self.player_order:
                 player = self.players[p_id]
+                print(f"[DEBUG] Checking player {p_id}, laid_out stacks: {[(s.id, id(s)) for s in player.laid_out]}", flush=True)
                 for stack in player.laid_out:
                     if stack.id == stack_id:
+                        print(f"[DEBUG] Found stack {stack.id} (Python id={id(stack)}) owned by player {p_id}", flush=True)
                         return stack, player
+            print(f"[DEBUG] Stack {stack_id} not found in any player's stacks!", flush=True)
             return None, None
 
   
 
     # game flow
     def check_if_winner(self) -> bool:
-        p_id = self.player_order[self.index_of_current_player]
-        if self.players[p_id].check_win_condition():
-            self.winner_id = p_id
-            return True
+        # Check ALL players, not just current player
+        for p_id in self.player_order:
+            if self.players[p_id].check_win_condition():
+                self.winner_id = p_id
+                print(f"[WIN] Player {p_id} has won the game!", flush=True)
+                return True
         return False
 
     def resolve_attempt(self, player: Player, attempt):
@@ -144,22 +150,68 @@ class Game:
         
         match attempt.action:
             case "attack":
+                print(f"[ATTACK] Processing attack action for player {player.id}", flush=True)
                 #check failures
                 if target_stack is None: raise ValueError("No target stack specified!")
-                if (target_stack.color != "rainbow" and attempt.card.color != "rainbow") and target_stack.color != attempt.card.color:
+                # Allow if: exact color match, OR card is rainbow, OR stack is rainbow
+                if (target_stack.color != "rainbow" and attempt.card.color != "rainbow" and target_stack.color != attempt.card.color):
                     raise ValueError("Card color does not match stack color!")
                 if target_stack.status == "immune": raise ValueError("Cannot attack this stack!")
                 
+                # Remove card from player's hand first - check if it exists
+                print(f"[DEBUG] Attempting to remove card {attempt.card.id} from player {player.id} hand", flush=True)
+                print(f"[DEBUG] attempt.card object: {attempt.card} (id={id(attempt.card)})", flush=True)
+                print(f"[DEBUG] Player hand has {len(player.on_hand)} cards: {[c.id for c in player.on_hand]}", flush=True)
+                print(f"[DEBUG] Hand card objects: {[(c.id, id(c)) for c in player.on_hand]}", flush=True)
+                print(f"[DEBUG] Card in hand check (using 'in'): {attempt.card in player.on_hand}", flush=True)
+                
+                if attempt.card not in player.on_hand:
+                    print(f"ERROR: Card {attempt.card.id} not in player {player.id} hand!", flush=True)
+                    print(f"Player hand cards: {[c.id for c in player.on_hand]}", flush=True)
+                    raise ValueError(f"Card {attempt.card.id} is not in your hand!")
+                
+                try:
+                    player.on_hand.remove(attempt.card)
+                    print(f"[DEBUG] Successfully removed card {attempt.card.id} from hand", flush=True)
+                except ValueError as e:
+                    print(f"[DEBUG] FAILED to remove card: {e}", flush=True)
+                    print(f"[DEBUG] Trying to find and remove by ID instead...", flush=True)
+                    # Fallback: remove by finding the card with matching ID
+                    card_to_remove = next((c for c in player.on_hand if c.id == attempt.card.id), None)
+                    if card_to_remove:
+                        player.on_hand.remove(card_to_remove)
+                        print(f"[DEBUG] Successfully removed card by ID", flush=True)
+                    else:
+                        raise ValueError(f"Card {attempt.card.id} is not in your hand!")
+                
                 #resolve; delete dead stack
                 isdead = stack_owner.add_card_to_stack(target_stack, attempt.card)
-                player.on_hand.remove(attempt.card)
                 if isdead:
+                    print(f"[DEBUG] Stack is dead, removing stack {target_stack.id} from player {stack_owner.id}", flush=True)
+                    print(f"[DEBUG] Stack object to remove: {target_stack} (Python id={id(target_stack)})", flush=True)
+                    print(f"[DEBUG] Player {stack_owner.id} has {len(stack_owner.laid_out)} stacks", flush=True)
+                    print(f"[DEBUG] Stack IDs in laid_out: {[s.id for s in stack_owner.laid_out]}", flush=True)
+                    print(f"[DEBUG] Stack objects in laid_out: {[(s.id, id(s)) for s in stack_owner.laid_out]}", flush=True)
+                    print(f"[DEBUG] Is target_stack in laid_out (using 'in')? {target_stack in stack_owner.laid_out}", flush=True)
+                    
                     stack_owner.remove_stack(target_stack)
                     for card in target_stack.cards: self.deck.discard_card(card)
                 result["card_id"] = attempt.card.id
 
             case "heal" | "vaccinate": #they do almost the same so we can merge them
                 if target_stack is None: raise ValueError("No target stack specified!")
+                
+                # Remove from hand FIRST to prevent state corruption
+                try:
+                    player.on_hand.remove(attempt.card)
+                except ValueError as e:
+                    # Fallback: remove by finding the card with matching ID
+                    card_to_remove = next((c for c in player.on_hand if c.id == attempt.card.id), None)
+                    if card_to_remove:
+                        player.on_hand.remove(card_to_remove)
+                    else:
+                        raise ValueError(f"Card {attempt.card.id} is not in your hand!")
+                
                 stack_owner.add_card_to_stack(target_stack, attempt.card)
 
                 # if its healthy it means there was virus
@@ -171,7 +223,6 @@ class Game:
                     self.deck.discard_card(attempt.card)
                 else:
                     self.deck.discard_card(attempt.card)
-                player.on_hand.remove(attempt.card)
                 result["card_id"] = attempt.card.id
 
             case "organ":
@@ -206,24 +257,82 @@ class Game:
                 player.laid_out, target_player.laid_out = target_player.laid_out, player.laid_out
 
             case "special": # latex glove
+                discarded_count = 0
                 for p in self.players.values():
                     if p.id != player.id:
-                        for c in list(p.on_hand): self.discard_card_from_player(p.id, c.id)
+                        cards_to_discard = list(p.on_hand)  # Make a copy
+                        for c in cards_to_discard:
+                            self.discard_card_from_player(p.id, c.id)
+                            discarded_count += 1
+                print(f"[LATEX GLOVE] Discarded {discarded_count} cards from opponents", flush=True)
 
             case "epidemy":
                 for i in range(len(attempt.virus_cards_ids)):
-                    v_card = next(c for s in player.laid_out for c in s.cards if c.id == attempt.virus_cards_ids[i])
+                    # Get the source stack (player's infected organ)
                     p_stack, _ = self.get_stack_by_id(attempt.player_stacks_ids[i])
+                    if not p_stack:
+                        raise ValueError(f"Source stack {attempt.player_stacks_ids[i]} not found!")
+                    
+                    # Find the virus card in this stack (value = -1)
+                    v_card = None
+                    for c in p_stack.cards:
+                        if c.value == -1:  # It's a virus
+                            v_card = c
+                            break
+                    
+                    if not v_card:
+                        raise ValueError(f"No virus card found in stack {p_stack.id}!")
+                    
+                    # Get target stack
                     t_stack, _ = self.get_stack_by_id(attempt.target_stacks_ids[i])
-                    p_stack.remove_card(v_card)
-                    t_stack.add_card(v_card)
+                    
+                    if not t_stack:
+                        raise ValueError(f"Target stack {attempt.target_stacks_ids[i]} not found!")
+                    
+                    if t_stack.status != "healthy":
+                        raise ValueError(f"Can only infect healthy organs! Target is {t_stack.status}")
+                    
+                    # Validate color compatibility (virus must match organ color OR be rainbow OR organ is rainbow)
+                    if v_card.color != t_stack.color and v_card.color != "rainbow" and t_stack.color != "rainbow":
+                        raise ValueError(f"Cannot add {v_card.color} virus to {t_stack.color} organ!")
+                    
+                    print(f"[PANDEMIC] Transferring virus {v_card.id} ({v_card.color}) from stack {p_stack.id} to stack {t_stack.id} ({t_stack.color})", flush=True)
+                    
+                    # Remove from source stack (bypass color check - we're just moving it)
+                    p_stack.stack_value -= v_card.value
+                    try:
+                        p_stack.cards.remove(v_card)
+                    except ValueError:
+                        # Fallback: remove by ID
+                        card_to_remove = next((c for c in p_stack.cards if c.id == v_card.id), None)
+                        if card_to_remove:
+                            p_stack.cards.remove(card_to_remove)
+                        else:
+                            raise ValueError(f"Virus card {v_card.id} not in stack!")
+                    p_stack.set_status()
+                    
+                    # Add to target stack (manually to avoid color check issues)
+                    # For pandemic, we already validated compatibility above
+                    t_stack.stack_value += v_card.value
+                    t_stack.cards.append(v_card)
+                    t_stack.set_status()
+                    
+                    print(f"[PANDEMIC] Successfully transferred virus. Target stack now has status: {t_stack.status}", flush=True)
 
             case _:
                 raise ValueError("Invalid action!")
 
         #remove special cards from hand
         if special_card_to_discard:
-            player.on_hand.remove(special_card_to_discard)
+            try:
+                player.on_hand.remove(special_card_to_discard)
+            except ValueError:
+                # Fallback: remove by ID
+                card_to_remove = next((c for c in player.on_hand if c.id == special_card_to_discard.id), None)
+                if card_to_remove:
+                    player.on_hand.remove(card_to_remove)
+                else:
+                    raise ValueError(f"Special card {special_card_to_discard.id} is not in your hand!")
             self.deck.discard_card(special_card_to_discard)
             result["card_id"] = special_card_to_discard.id
             
@@ -241,8 +350,28 @@ class Game:
         #game starts
 
     def next_player(self):
+        old_player_id = self.player_order[self.index_of_current_player]
         self.index_of_current_player = (self.index_of_current_player + 1) % self.players_number
-        return self.player_order[self.index_of_current_player]
+        current_player_id = self.player_order[self.index_of_current_player]
+        
+        print(f"[NEXT_PLAYER] Turn advancing from Player {old_player_id} to Player {current_player_id}", flush=True)
+        
+        # Check if current player has no cards (e.g., after latex glove)
+        current_player = self.players[current_player_id]
+        if len(current_player.on_hand) == 0:
+            print(f"[AUTO-SKIP] Player {current_player_id} has no cards, drawing 3 and skipping turn", flush=True)
+            # Draw 3 cards
+            for _ in range(3):
+                try:
+                    self.draw_card_for_player(current_player_id)
+                except:
+                    break  # Deck might be empty
+            # Skip their turn by advancing to next player
+            print(f"[AUTO-SKIP] Player {current_player_id} now has {len(current_player.on_hand)} cards, recursing to next player", flush=True)
+            return self.next_player()
+        
+        print(f"[NEXT_PLAYER] Final current player: {current_player_id}", flush=True)
+        return current_player_id
     
     
 

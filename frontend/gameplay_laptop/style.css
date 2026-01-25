@@ -18,7 +18,7 @@ body {
 }
 
 .game-container {
-    width: 1400px;
+    width: 2500px;
     height: 900px;
 }
 
@@ -99,7 +99,7 @@ body {
 
 .players-area {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 15px;
 }
 
@@ -194,4 +194,42 @@ body {
     z-index: 10;
     color: white;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.start-game-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.start-game-overlay.hidden {
+    display: none;
+}
+
+.start-game-btn {
+    width: 600px;
+    height: 200px;
+    background-color: #C0C0C0;
+    border: 3px solid #000000;
+    border-radius: 25px;
+    font-size: 96px;
+    font-weight: bold;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.start-game-btn:hover {
+    background-color: #B0B0B0;
+    transform: scale(1.05);
 }
