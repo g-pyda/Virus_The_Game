@@ -18,17 +18,3 @@ export function handleStartButton() {
     data: {}
   }));
 }
-
-export function handleDeletePlayerButton(playerId) {
-  console.log("Delete player button clicked:", playerId);
-
-  // If you don't have a backend feature for this yet, keep it as a stub.
-  // Later you can implement a header like "player_kick" and send it here.
-}
-
-export function handleNewGameButton() {
-  console.log("New game button clicked");
-
-  // Optional: simplest "new game" behavior is to reload the page
-  window.location.reload();
-}

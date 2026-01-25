@@ -10,5 +10,6 @@ COPY . .
 EXPOSE 8000
 
 RUN python manage.py migrate --verbosity 3
+RUN python manage.py collectstatic --noinput --clear --verbosity 3
 
 CMD ["uvicorn", "virus_the_game.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

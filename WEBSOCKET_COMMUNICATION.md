@@ -373,11 +373,13 @@ This part is dedicated to determine frontend - host communication.
         {
             "id": 2
             "cards_nr": 2,
-            "turn": False
+            "turn": False,
+            "stacks": []
         }, {
             "id": 3,
             "cards_nr": 3,
-            "turn": True
+            "turn": True,
+            "stacks": []
         }...
     ]
 }

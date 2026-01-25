@@ -17,7 +17,7 @@ btnHost.addEventListener('click', async function() {
         const response = await sendRequest('POST', '/api/games/', { nickname: hostNickname.trim() });
         const gameId = response.game_id;
 
-        localStorage.setItem('host_id', gameId);
+        localStorage.setItem('game_id', gameId);
         window.location.href = `/game/${gameId}/`;
     } catch (error) {
         alert('Failed to create game: ' + error.message);

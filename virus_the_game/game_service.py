@@ -104,6 +104,7 @@ class GameService:
                 "id": p.id,
                 "cards_nr": len(p.on_hand),
                 "turn": (pid == current_player_id),
+                "stacks": [self._serialize_stack(s) for s in p.laid_out],
             })
 
         return {
@@ -123,7 +124,7 @@ class GameService:
 
     def _serialize_stack(self, s: Stack) -> Dict[str, Any]:
         # Protocol expects stack_id, color, value (you can choose stack_value or status)
-        return {"stack_id": s.id, "color": s.color, "value": s.stack_value}
+        return {"stack_id": s.id, "color": s.color, "value": s.stack_value, "top_card_color": s.cards[-1].color if s.cards else None}
     
     def apply_card_play(self, room_code: str, player_id: int, ws_data: dict) -> dict:
         """

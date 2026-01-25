@@ -255,8 +255,7 @@ class HostConsumer(AsyncWebsocketConsumer):
         """
         Messages from host UI (browser). Optional.
         Accept both:
-          - envelope format: {"sender":"frontend","header":"start_game","data":{...}}
-          - legacy format: {"action":"start_game"}
+          - envelope format: {"sender":"frontend","header":"game_start","data":{...}}
         """
         if not text_data:
             return
@@ -272,7 +271,7 @@ class HostConsumer(AsyncWebsocketConsumer):
             await self.send(build_message("internal", "attempt", {"status": False, "message": "Invalid sender"}))
             return
 
-        if header == "start_game":
+        if header == "game_start":
             started = GAME_SERVICE.start_if_ready(self.room_code)
             await self.send(build_message("internal", "attempt", {"status": True, "message": f"start_game: {started}"}))
             # push state regardless (safe)
@@ -397,9 +396,6 @@ class HostConsumer(AsyncWebsocketConsumer):
         )
 
         await self._send_attempt_to_player(player_id, True, "connected", request_id=request_id)
-
-        # Push state
-        await self._push_state_to_all_players()
 
     async def _handle_disconnection(self, player_id: str, data: dict, request_id=None):
         """

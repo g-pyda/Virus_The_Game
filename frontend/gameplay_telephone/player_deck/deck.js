@@ -1,9 +1,17 @@
 // Player websocket implementation for the deck page.
 // Receives sender="internal" messages and sends sender="frontend" messages.
 
-const game_id = localStorage.getItem("game_id");
-const player_id = localStorage.getItem("player_id");
-const playerName = localStorage.getItem("playerName") || `Player ${player_id}`;
+import {
+  getCard,
+  setCardImage,
+  disableAllPlayButtons,
+  disableAllDiscardButtons,
+  enableContinueButton
+} from '/gameplay_telephone/player_deck/cards_dictionary.js';
+
+const game_id = window.localStorage.getItem("game_id");
+const player_id = window.localStorage.getItem("player_id");
+const playerName = window.localStorage.getItem("playerName") || `Player ${player_id}`;
 
 if (!game_id || !player_id) {
   alert("Missing game_id or player_id. Please join the game again.");
@@ -19,13 +27,38 @@ if (h1) {
   h1.textContent = `${playerName}`;
 }
 
+let windowObjects = [
+  window.lastHandState,
+  window.discardStarted,
+  window.lastCardPlayed
+]
+
+windowObjects.forEach(obj => {
+  if (obj === undefined) {
+    obj = null;
+  }
+});
+
+function handleButtonsState() {
+  if (window.lastCardPlayed) {
+          // deactivate proper action buttons in other cards
+          disableAllPlayButtons();
+          cards = window.lastHandState.filter(c => c.card_id !== lastCardPlayed);
+          window.lastHandState = cards;
+          cards.forEach(c => {
+            if (!window.discardStarted) {
+              disableAllDiscardButtons();
+            }
+          });
+          enableContinueButton();
+        }
+}
+
 const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
 const socketUrl = `${ws_scheme}://${window.location.host}/ws/game/${String(game_id)}/player/${String(player_id)}/`;
 const socket = new WebSocket(socketUrl);
 
-localStorage.playerSocket = socket;
-
-let lastHandState = [];
+window.playerSocket = socket;
 
 socket.onopen = () => {
   console.log("PLAYER WS connected:", socketUrl);
@@ -64,12 +97,20 @@ socket.onmessage = (e) => {
 
   switch (header) {
     case "attempt":
-      if (data.status === false) alert(`Action failed: ${data.message}`);
-      break;
+      if (data.status === false){
+        window.lastCardPlayed = null;
+        window.discardStarted = false;
+        alert(`Action failed: ${data.message}`);
+      } else {
+        // remove played/discarded card from hand
+        if (data.message === "connected") break;
+        handleButtonsState();
+        deleteCardById(window.lastCardPlayed);
+      }
 
     case "hand_state":
-      lastHandState = Array.isArray(data.cards) ? data.cards : [];
-      renderHand(lastHandState);
+      window.lastHandState = Array.isArray(data.cards) ? data.cards : [];
+      renderHand(window.lastHandState);
       break;
 
     case "stacks_state":
@@ -111,10 +152,27 @@ function sendEnvelope(header, data) {
 
 function setTurn(isMyTurn) {
   const btns = document.querySelectorAll("button");
-  btns.forEach((b) => (b.disabled = !isMyTurn));
+  btns.forEach((b) => {
+    b.disabled = !isMyTurn;
+    if (b.classList.contains("continue-btn")) {
+      b.disabled = true;
+    }
+  });
 }
 
 function renderHand(cards) {
+  function getSpecialType(card_type){
+    const specialTypes = {
+      "thieft": "organ_thief",
+      "organ swap": "transplant",
+      "body swap": "doctors_mistake",
+      "latex glove": "latex_glove",
+      "epidemy": "pandemics"
+    }
+
+    return specialTypes[card_type] || "doctors_mistake";
+  }
+
   const container = document.querySelector(".container");
   const continueBtn = document.querySelector(".continue-btn");
 
@@ -125,27 +183,27 @@ function renderHand(cards) {
   cards.forEach((c) => {
     const row = document.createElement("div");
     row.className = "card-row";
+    row.id = `card-${c.card_id}`;
+
+    const category = c.value === 0 ? "organs" : (c.value === 1 ? "medicines" : (c.value === -1 ? "virus" : "special"));
+    const type = c.color === "special" ? (getSpecialType(c.card_type)) : c.color;
 
     const img = document.createElement("img");
-    img.src = "cards/card.png";
+    img.src = getCard(category, type);
+    console.log(category, type, img.src);
     img.alt = "Card";
     img.className = "card";
-
-    // show card info as text (simple, works immediately)
-    const label = document.createElement("div");
-    label.style.marginLeft = "10px";
-    label.textContent = `id=${c.card_id} color=${c.color} value=${c.value} type=${c.card_type || ""}`;
 
     const buttons = document.createElement("div");
     buttons.className = "buttons";
 
     const playBtn = document.createElement("button");
-    playBtn.className = "btn";
+    playBtn.className = "btn play-btn";
     playBtn.textContent = "Play";
     playBtn.onclick = () => playCard(c);
 
     const discardBtn = document.createElement("button");
-    discardBtn.className = "btn";
+    discardBtn.className = "btn discard-btn";
     discardBtn.textContent = "Discard";
     discardBtn.onclick = () => discardCard(c.card_id);
 
@@ -153,12 +211,20 @@ function renderHand(cards) {
     buttons.appendChild(discardBtn);
 
     row.appendChild(img);
-    row.appendChild(label);
     row.appendChild(buttons);
 
     // insert above continue button
     container.insertBefore(row, continueBtn);
   });
+
+  handleButtonsState();
+}
+
+function deleteCardById(card_id) {
+  const row = document.querySelector(`.card-row[card_id='${card_id}']`);
+  if (row) {
+    row.remove();
+  } 
 }
 
 // ----- Actions -----
@@ -188,6 +254,7 @@ function playCard(card) {
       action: "organ",
       card_id: card.card_id
     });
+    window.lastCardPlayed = card.card_id;
     return;
   }
 
