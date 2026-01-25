@@ -166,6 +166,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.send_message_to_host(payload)
             return
 
+        if header == "draw_cards":
+            payload = build_envelope(
+                sender=str(self.player_id),
+                header="draw_cards",
+                data=data,
+                request_id=request_id,
+            )
+            await self.send_message_to_host(payload)
+            return
+
         if header == "connection":
             payload = build_envelope(
                 sender=str(self.player_id),
@@ -363,6 +373,7 @@ class HostConsumer(AsyncWebsocketConsumer):
             "all_stacks": self._handle_all_stacks,
             "card_play": self._handle_card_play,
             "turn_end": self._handle_turn_end,
+            "draw_cards": self._handle_draw_cards,
         }
 
         handler = handlers.get(header)
@@ -429,7 +440,7 @@ class HostConsumer(AsyncWebsocketConsumer):
 
     async def _handle_card_play(self, player_id: str, data: dict, request_id=None):
         try:
-            GAME_SERVICE.apply_card_play(self.room_code, int(player_id), data)
+            result = GAME_SERVICE.apply_card_play(self.room_code, int(player_id), data)
         except Exception as e:
             await self._send_attempt_to_player(player_id, False, str(e), request_id=request_id)
             return
@@ -439,8 +450,49 @@ class HostConsumer(AsyncWebsocketConsumer):
         await self._send_internal_to_host_ui("state_change",
             GAME_SERVICE.serialize_host_state_change(self.room_code)
         )
+        
+        # Check if someone won
+        print(f"[CONSUMER] Card play result: {result}", flush=True)
+        if result.get("game_ended"):
+            winner_id = result.get("winner_id")
+            game = GAME_SERVICE.get_or_create(self.room_code)
+            winner_name = game.players[winner_id].name if winner_id in game.players else "Unknown"
+            print(f"[CONSUMER] Sending game_end message - Winner: {winner_name} (ID: {winner_id})", flush=True)
+            
+            # Update winner's score in database
+            from channels.db import database_sync_to_async
+            from backend.models import Player as DBPlayer
+            
+            @database_sync_to_async
+            def update_winner_score():
+                try:
+                    # Find player by nickname (name in game engine)
+                    db_player = DBPlayer.objects.get(nickname=winner_name)
+                    db_player.total_score += 1
+                    db_player.save()
+                    print(f"[CONSUMER] Updated {winner_name}'s score to {db_player.total_score}", flush=True)
+                except DBPlayer.DoesNotExist:
+                    print(f"[CONSUMER] Warning: Player {winner_name} not found in database", flush=True)
+                except Exception as e:
+                    print(f"[CONSUMER] Error updating winner score: {e}", flush=True)
+            
+            await update_winner_score()
+            
+            # Send game_end to all players
+            players = await self.channel_manager.get_all_players(self.room_code)
+            for pid in players.keys():
+                await self._send_to_player(pid, build_envelope(
+                    sender="internal",
+                    header="game_end",
+                    data={"winner_id": winner_id, "winner_name": winner_name}
+                ))
+            
+            # Send game_end to host
+            await self._send_internal_to_host_ui("game_end", {"winner_id": winner_id, "winner_name": winner_name})
+            print(f"[CONSUMER] game_end messages sent", flush=True)
 
     async def _handle_turn_end(self, player_id: str, data: dict, request_id=None):
+        print(f"[TURN_END] Player {player_id} ending their turn", flush=True)
         try:
             GAME_SERVICE.end_turn(self.room_code, int(player_id))
         except Exception as e:
@@ -448,8 +500,21 @@ class HostConsumer(AsyncWebsocketConsumer):
             return
 
         await self._send_attempt_to_player(player_id, True, "", request_id=request_id)
+        print(f"[TURN_END] Pushing state to all players after turn end", flush=True)
         await self._push_state_to_all_players()
         await self._send_internal_to_host_ui("turn_end", {})
         await self._send_internal_to_host_ui("state_change",
             GAME_SERVICE.serialize_host_state_change(self.room_code)
         )
+        print(f"[TURN_END] Turn end complete", flush=True)
+
+    async def _handle_draw_cards(self, player_id: str, data: dict, request_id=None):
+        try:
+            count = data.get("count", 1)
+            GAME_SERVICE.draw_cards(self.room_code, int(player_id), count)
+        except Exception as e:
+            await self._send_attempt_to_player(player_id, False, str(e), request_id=request_id)
+            return
+
+        await self._send_attempt_to_player(player_id, True, "", request_id=request_id)
+        await self._push_state_to_player(player_id, request_id=request_id)

@@ -41,8 +41,18 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     LAN_HOST_IP,
+    '*',  # Allow all hosts for LAN access
 ]
 print("Allowed hosts:", ALLOWED_HOSTS)
+
+# CSRF settings for LAN access
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+# Disable CSRF for development/LAN use
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 
 # STATIC_URL = '/static/'
 # STATIC_ROOT = BASE_DIR / 'static_root'
@@ -74,6 +84,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Allow iframes from same origin for modal selection pages
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 ROOT_URLCONF = 'virus_the_game.urls'
 

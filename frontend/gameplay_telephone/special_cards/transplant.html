@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transplant - Select Organs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="player-title">Transplant</h1>
+        <p class="instruction">First, select YOUR organ to swap:</p>
+        
+        <div class="organs-grid" id="my-organs-grid"></div>
+        
+        <div id="step2" style="display: none;">
+            <p class="instruction opponent-title">Now select opponent's organ to swap with:</p>
+            <div class="player-select" id="player-select"></div>
+            <div class="organs-grid" id="opponent-organs-grid"></div>
+        </div>
+        
+        <button class="cancel-btn" onclick="cancelSelection()">Cancel</button>
+    </div>
+    
+    <script src="transplant.js"></script>
+</body>
+</html>

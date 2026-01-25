@@ -46,22 +46,47 @@ export function setCardImage(cardId, category, type) {
 }
 
 export function disableAllPlayButtons() {
-    const playButtons = document.querySelectorAll('button .play-btn');
+    const playButtons = document.querySelectorAll('button.play-btn');
+    console.log('disableAllPlayButtons - found', playButtons.length, 'buttons');
     playButtons.forEach(button => {
         button.disabled = true;
     });
 }
 
+export function enableAllPlayButtons() {
+    const playButtons = document.querySelectorAll('button.play-btn');
+    console.log('enableAllPlayButtons - found', playButtons.length, 'buttons');
+    playButtons.forEach(button => {
+        button.disabled = false;
+    });
+}
+
 export function disableAllDiscardButtons() {
-    const discardButtons = document.querySelectorAll('button .discard-btn');
+    const discardButtons = document.querySelectorAll('button.discard-btn');
+    console.log('disableAllDiscardButtons - found', discardButtons.length, 'buttons');
     discardButtons.forEach(button => {
         button.disabled = true;
     });
 }
 
-export function enableContinueButton() {
-    const continueButtons = document.querySelectorAll('button .continue-btn');
-    continueButtons.forEach(button => {
+export function enableAllDiscardButtons() {
+    const discardButtons = document.querySelectorAll('button.discard-btn');
+    console.log('enableAllDiscardButtons - found', discardButtons.length, 'buttons');
+    discardButtons.forEach(button => {
         button.disabled = false;
     });
+}
+
+export function enableContinueButton() {
+    const continueButton = document.querySelector('button.continue-btn');
+    if (continueButton) {
+        continueButton.disabled = false;
+    }
+}
+
+export function disableContinueButton() {
+    const continueButton = document.querySelector('button.continue-btn');
+    if (continueButton) {
+        continueButton.disabled = true;
+    }
 }

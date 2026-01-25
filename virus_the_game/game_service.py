@@ -73,21 +73,31 @@ class GameService:
     def serialize_others_state(self, room_code: str, player_id: int) -> Dict[str, Any]:
         game = self.get_or_create(room_code)
         others = []
+        # Ensure player_id is an integer for comparison
+        player_id = int(player_id)
+        print(f"[serialize_others_state] Current player_id: {player_id} (type: {type(player_id)})")
+        print(f"[serialize_others_state] Player order: {game.player_order}")
         for other_id in game.player_order:
-            if other_id == player_id:
+            print(f"[serialize_others_state] Checking other_id: {other_id} (type: {type(other_id)}) == {player_id}?")
+            if int(other_id) == player_id:
+                print(f"[serialize_others_state] Skipping current player {other_id}")
                 continue
             p = game.players[other_id]
+            print(f"[serialize_others_state] Adding player {p.id} ({p.name}) to others list")
             others.append({
                 "player_id": p.id,
                 "player_name": p.name,
                 "stacks": [self._serialize_stack(s) for s in p.laid_out],
             })
+        print(f"[serialize_others_state] Final others list has {len(others)} players")
         return {"players": others}
 
     def serialize_turn_state(self, room_code: str, player_id: int) -> Dict[str, Any]:
         game = self.get_or_create(room_code)
         current_player_id = game.player_order[game.index_of_current_player] if game.player_order else None
-        return {"turn": (current_player_id == player_id)}
+        is_turn = (current_player_id == player_id)
+        print(f"[TURN_STATE] Player {player_id}: turn={is_turn} (current_player={current_player_id})", flush=True)
+        return {"turn": is_turn}
     
     def serialize_host_state_change(self, room_code: str) -> Dict[str, Any]:
         game = self.get_or_create(room_code)
@@ -141,8 +151,15 @@ class GameService:
         attempt = player.attempt_move(attempt_info)
         result = game.resolve_attempt(player, attempt)
 
-        # After a successful attempt you usually draw a card or advance turn depending on rules.
-        # Keep this explicit and implement according to your design.
+        # Check for winner after each action
+        print(f"[GAME_SERVICE] Checking if winner...", flush=True)
+        if game.check_if_winner():
+            print(f"[GAME_SERVICE] Winner detected! ID: {game.winner_id}", flush=True)
+            result["game_ended"] = True
+            result["winner_id"] = game.winner_id
+        else:
+            print(f"[GAME_SERVICE] No winner yet", flush=True)
+
         return result
 
     def end_turn(self, room_code: str, player_id: int) -> None:
@@ -155,3 +172,19 @@ class GameService:
 
         # Advance turn
         game.next_player()
+
+    def draw_cards(self, room_code: str, player_id: int, count: int = 1) -> None:
+        """
+        Draw specified number of cards for a player.
+        """
+        game = self.get_or_create(room_code)
+
+        if player_id not in game.players:
+            raise ValueError(f"Player {player_id} not in game")
+
+        for _ in range(count):
+            try:
+                game.draw_card_for_player(player_id)
+            except Exception as e:
+                # If deck is empty or other error, stop drawing
+                raise ValueError(f"Cannot draw card: {str(e)}")

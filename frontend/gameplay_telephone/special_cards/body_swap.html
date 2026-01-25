@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor's Mistake - Body Swap</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="player-title">Doctor's Mistake</h1>
+        <p class="instruction">Select a player to swap ALL organs with:</p>
+        
+        <div class="player-select" id="player-select"></div>
+        
+        <div id="player-preview" style="display: none; margin-top: 40px;">
+            <h3 style="text-align: center; font-size: 24px; margin-bottom: 20px; color: #000;">Their organs:</h3>
+            <div class="organs-grid" id="organs-preview"></div>
+            <div style="display: flex; justify-content: center;">
+                <button class="confirm-btn" onclick="confirmSwap()">Confirm Swap</button>
+            </div>
+        </div>
+        
+        <button class="cancel-btn" onclick="cancelSelection()">Cancel</button>
+    </div>
+    
+    <script src="body_swap.js"></script>
+</body>
+</html>

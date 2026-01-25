@@ -41,6 +41,10 @@ export default function handleWebsocketMessages(event) {
       handleTurnEnd(data);
       break;
 
+    case "game_end":
+      handleGameEnd(data);
+      break;
+
     default:
       console.log("HOST WS: unknown header:", header);
       break;
@@ -240,9 +244,14 @@ function handleStateChange(data) {
       }
 
       // Update players organs based on stacks
-      deactivateAllOrganLayers(player_id);
-
       if (Array.isArray(playerState.stacks)) {
+        // Get player body element for this player
+        const playerBody = document.getElementById(`player-body-${player_id}`);
+        if (!playerBody) {
+          console.warn(`Player body not found for player ${player_id}`);
+          return;
+        }
+        
         const colorToOrganMap = {
           'blue': 'brain',
           'red': 'heart',
@@ -250,30 +259,57 @@ function handleStateChange(data) {
           'green': 'stomach',
           'rainbow': 'uterus'
         };
+        
+        // First, deactivate ALL organ layers for this player (except covers)
+        // and activate all covers (assume no organs initially)
+        const allLayers = playerBody.querySelectorAll(`[id^="organ-"][id*="-${player_id}"]`);
+        allLayers.forEach(layer => {
+          if (layer.id.includes("cover")) {
+            // Activate all covers initially
+            layer.classList.add("active");
+            layer.classList.remove("inactive");
+          } else {
+            // Deactivate all other layers
+            layer.classList.remove("active");
+            layer.classList.add("inactive");
+          }
+        });
+        
+        // Then process each stack and activate appropriate layers
         playerState.stacks.forEach((stack) => {
           const stack_id = stack.stack_id;
           const color = stack.color;
           const value = stack.value;
           const topColor = stack.top_card_color;
           const organName = colorToOrganMap[color];
-          deleteOrganCover(player_id, organName);
+          
+          // Hide cover for this organ since it exists
+          hideOrganCover(player_id, organName);
 
           switch (value) {
             case 0: // healthy
               break;
             case -1: // infected (card)
-              // Activate virus in specific, deactivate others
-              const organCard = playerBody.querySelector(`#organ-${organName}-virus-${target_id}`);
-              if (organCard) {
-                organCard.classList.add("active");
-                organCard.classList.remove("inactive");
+              // Activate virus layer based on top card color
+              const organVirus = playerBody.querySelector(`#organ-${organName}-virus-${topColor}-${player_id}`);
+              if (organVirus) {
+                organVirus.classList.add("active");
+                organVirus.classList.remove("inactive");
+                console.log(`Activated virus layer: organ-${organName}-virus-${topColor}-${player_id}`);
+              } else {
+                console.warn(`Virus layer not found: organ-${organName}-virus-${topColor}-${player_id}`);
               }
               break;
             case 1: // vaccinated (medicine)
-              const organMedicine = playerBody.querySelector(`#organ-${organName}-medicine-${topColor}-${player_id}`);
+              const medicineSelectorId = `organ-${organName}-medicine-${topColor}-${player_id}`;
+              console.log(`Looking for medicine layer: ${medicineSelectorId}`);
+              const organMedicine = playerBody.querySelector(`#${medicineSelectorId}`);
               if (organMedicine) {
                 organMedicine.classList.add("active");
                 organMedicine.classList.remove("inactive");
+                console.log(`Activated medicine layer: ${medicineSelectorId}`);
+              } else {
+                console.warn(`Medicine layer not found: ${medicineSelectorId}`);
               }
               break;
             case 2: // immune (medicine)
@@ -303,12 +339,13 @@ function deactivateAllOrganLayers(player_id, organName) {
   });
 }
 
-function deleteOrganCover(player_id, organName) {
+function hideOrganCover(player_id, organName) {
   const playerBody = document.getElementById(`player-body-${player_id}`);
   if (!playerBody) return;
   const cover = playerBody.querySelector(`#organ-${organName}-cover-${player_id}`);
   if (cover) {
-    cover.remove();
+    cover.classList.remove("active");
+    cover.classList.add("inactive");
   }
 }
 
@@ -325,6 +362,67 @@ function handleTurnEnd(data) {
   });
 
   console.log("Turn ended");
+}
+
+/**
+ * Handles game end - displays winner announcement
+ */
+function handleGameEnd(data) {
+  console.log("[GAME_END] Game ended:", data);
+  
+  // Create overlay for winner announcement
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.zIndex = '10000';
+  
+  const winnerBox = document.createElement('div');
+  winnerBox.style.backgroundColor = '#6CBF6C';
+  winnerBox.style.padding = '50px';
+  winnerBox.style.borderRadius = '20px';
+  winnerBox.style.border = '5px solid black';
+  winnerBox.style.textAlign = 'center';
+  
+  const title = document.createElement('h1');
+  title.textContent = 'Game Over!';
+  title.style.fontSize = '72px';
+  title.style.marginBottom = '30px';
+  title.style.color = 'black';
+  title.style.fontWeight = 'bold';
+  
+  const winnerText = document.createElement('h2');
+  winnerText.textContent = `Winner: ${data.winner_name}`;
+  winnerText.style.fontSize = '48px';
+  winnerText.style.marginBottom = '40px';
+  winnerText.style.color = 'black';
+  
+  const backButton = document.createElement('button');
+  backButton.textContent = 'Back to Main';
+  backButton.style.fontSize = '32px';
+  backButton.style.padding = '15px 40px';
+  backButton.style.backgroundColor = 'white';
+  backButton.style.color = 'black';
+  backButton.style.border = '3px solid black';
+  backButton.style.borderRadius = '10px';
+  backButton.style.cursor = 'pointer';
+  backButton.style.fontWeight = 'bold';
+  backButton.onclick = () => {
+    window.location.href = '/home/';
+  };
+  
+  winnerBox.appendChild(title);
+  winnerBox.appendChild(winnerText);
+  winnerBox.appendChild(backButton);
+  overlay.appendChild(winnerBox);
+  document.body.appendChild(overlay);
+  console.log('[GAME_END] Overlay created and appended to body');
 }
 
 /**

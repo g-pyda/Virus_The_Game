@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pandemic</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="player-title">Pandemic</h1>
+        <p class="instruction">Move viruses from your organs to opponents' healthy organs</p>
+        
+        <div id="my-viruses">
+            <h3>Your viruses (select to transfer):</h3>
+            <div class="virus-grid" id="virus-grid"></div>
+        </div>
+        
+        <div id="transfers-list" style="display: none;">
+            <h3>Selected transfers:</h3>
+            <ul id="transfers"></ul>
+            <button class="confirm-btn" onclick="executeTransfers()">Execute Pandemic</button>
+        </div>
+        
+        <button class="cancel-btn" onclick="cancelSelection()">Cancel</button>
+    </div>
+    
+    <!-- Modal for target selection -->
+    <div id="target-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+            <h3>Select target for virus</h3>
+            <div id="modal-player-select"></div>
+            <div id="modal-organs-grid"></div>
+            <button class="cancel-btn" onclick="closeTargetModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <script src="pandemic.js"></script>
+</body>
+</html>

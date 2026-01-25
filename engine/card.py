@@ -32,7 +32,8 @@ class Stack:
             self.add_card(Card)
 
     def add_card(self, Card):
-        if(self.color != Card.color):
+        # Rainbow cards can be added to any stack, and any card can be added to rainbow stacks
+        if(self.color != Card.color and Card.color != "rainbow" and self.color != "rainbow"):
             raise TypeError("Wrong color!") 
         if(self.status == "immune"):
             raise ValueError("Card is immune. Nothing left to do.") 
@@ -42,7 +43,8 @@ class Stack:
         self.set_status()
 
     def remove_card(self, Card):
-        if(self.color != Card.color):
+        # Rainbow cards can be removed from any stack, and any card can be removed from rainbow stacks
+        if(self.color != Card.color and Card.color != "rainbow" and self.color != "rainbow"):
             raise TypeError("Wrong color!") 
 
         else:
