@@ -146,9 +146,8 @@ class Player:
     def add_card_to_stack(self, stack: Stack, card: Card):
         #self.on_hand.remove(card)
         stack.add_card(card)
-    # if organ dies, remove the stack, move to discard pile handled in game.py
+    # if organ dies, return True so game.py can handle removal
         if stack.status == "dead":
-            self.laid_out.remove(stack)
             return True
         return False
     
@@ -159,12 +158,28 @@ class Player:
         stack.remove_card(card)
 
     def remove_stack(self, stack: Stack):
-        self.laid_out.remove(stack)
+        try:
+            self.laid_out.remove(stack)
+        except ValueError:
+            # Fallback: remove by ID
+            stack_to_remove = next((s for s in self.laid_out if s.id == stack.id), None)
+            if stack_to_remove:
+                self.laid_out.remove(stack_to_remove)
+            else:
+                raise ValueError(f"Stack {stack.id} is not in player's laid_out stacks!")
 
     def lay_out_organ(self, card: Card):
         new_stack = Stack(card)
         self.laid_out.append(new_stack)
-        self.on_hand.remove(card)
+        try:
+            self.on_hand.remove(card)
+        except ValueError:
+            # Fallback: remove by ID
+            card_to_remove = next((c for c in self.on_hand if c.id == card.id), None)
+            if card_to_remove:
+                self.on_hand.remove(card_to_remove)
+            else:
+                raise ValueError(f"Card {card.id} is not in your hand!")
     
     def check_win_condition(self):
         if len(self.laid_out) < 4:

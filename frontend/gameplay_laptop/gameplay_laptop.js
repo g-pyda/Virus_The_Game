@@ -1,7 +1,15 @@
 import handleWebsocketMessages, { initializeHostPage } from '/scripts/gameplay_host/websocket_handlers.js';
-import { handleStartButton, handleNewGameButton } from '/scripts/gameplay_host/button_handlers.js';
+import { handleStartButton } from '/scripts/gameplay_host/button_handlers.js';
 
-const game_id = localStorage.getItem('game_id');
+// Extract game_id from URL (format: /game/<game_id>/)
+const pathMatch = window.location.pathname.match(/\/game\/(\d+)/);
+const game_id = pathMatch ? pathMatch[1] : null;
+
+if (!game_id) {
+  alert('Invalid game URL');
+  window.location.href = '/';
+}
+
 const room = String(game_id);
 
 const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
@@ -24,10 +32,12 @@ socket.onclose = () => console.log("HOST WS closed");
 window.addEventListener("DOMContentLoaded", () => {
   // Initialize game ID display
   initializeHostPage();
-  
-  const startBtn = document.getElementById("startGameBtn");
-  if (startBtn) startBtn.addEventListener("click", handleStartButton);
 
-  const newBtn = document.getElementById("newGameBtn");
-  if (newBtn) newBtn.addEventListener("click", handleNewGameButton);
+  const startBtn = document.getElementById("start-game-btn");
+  if (startBtn) startBtn.addEventListener("click", () => {
+    handleStartButton();
+    const startBtnSpace = document.getElementById("startGameOverlay");
+    startBtnSpace.style.display = "none";
+  }
+  );
 });

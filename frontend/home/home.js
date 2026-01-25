@@ -2,7 +2,9 @@ import { sendRequest } from "/scripts/common/api_handlers.js";
 
 const btnHost = document.getElementById('btn_host');
 const btnJoin = document.getElementById('btn_join');
+const btnLeaderboard = document.getElementById('btn_leaderboard');
 
+console.log('Buttons loaded:', { btnHost, btnJoin, btnLeaderboard });
 
 btnHost.addEventListener('click', async function() {
     try {
@@ -17,7 +19,7 @@ btnHost.addEventListener('click', async function() {
         const response = await sendRequest('POST', '/api/games/', { nickname: hostNickname.trim() });
         const gameId = response.game_id;
 
-        localStorage.setItem('host_id', gameId);
+        localStorage.setItem('game_id', gameId);
         window.location.href = `/game/${gameId}/`;
     } catch (error) {
         alert('Failed to create game: ' + error.message);
@@ -26,5 +28,11 @@ btnHost.addEventListener('click', async function() {
 
 
 btnJoin.addEventListener('click', function() {
+    console.log('Join button clicked');
     window.location.href = '/game/join/';
+});
+
+btnLeaderboard.addEventListener('click', function() {
+    console.log('Leaderboard button clicked, redirecting to:', '/leaderboard/');
+    window.location.href = '/leaderboard/';
 });

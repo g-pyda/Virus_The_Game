@@ -33,24 +33,16 @@ export default function handleWebsocketMessages(event) {
       handlePlayerLeave(data);
       break;
 
-    case "organ_add":
-      handleOrganAdd(data);
-      break;
-
-    case "organ_change":
-      handleOrganChange(data);
-      break;
-
-    case "organ_delete":
-      handleOrganDelete(data);
-      break;
-
     case "state_change":
       handleStateChange(data);
       break;
 
     case "turn_end":
       handleTurnEnd(data);
+      break;
+
+    case "game_end":
+      handleGameEnd(data);
       break;
 
     default:
@@ -107,40 +99,53 @@ function handlePlayerJoin(data) {
   playerBody.id = `player-body-${player_id}`;
 
   // Add organ layers for each organ
+  const organColorsMapping = {
+      'brain': ['blue'],
+      'heart': ['red'],
+      'bone': ['yellow'],
+      'stomach': ['green'],
+      'uterus': ['blue', 'red', 'yellow', 'green']
+  };
   organs.forEach(organ => {
-    // Cover layer (initial healthy state)
-    const coverLayer = document.createElement("div");
-    coverLayer.className = "organ-layer active";
-    coverLayer.style.backgroundImage = `url('/gameplay_laptop/graphics/${organ.folder}/Player_body_${organ.name}_cover.png')`;
-    playerBody.appendChild(coverLayer);
+    const availableColors = organColorsMapping[organ.name] || [];
 
-    // Virus layers (blue, rainbow)
-    const virusBlue = document.createElement("div");
-    virusBlue.className = "organ-layer inactive";
-    virusBlue.style.backgroundImage = `url('/gameplay_laptop/graphics/${organ.folder}/Virus_${organ.name}_blue.png')`;
-    playerBody.appendChild(virusBlue);
+    // cover
+    let organHTML = `
+        <div class="organ-layer active" 
+             id="organ-${organ.name}-cover-${player_id}" 
+             style="background-image: url('/gameplay_laptop/graphics/${organ.folder}/Player_body_${organ.name}_cover.png')">
+        </div>`;
 
-    const virusRainbow = document.createElement("div");
-    virusRainbow.className = "organ-layer inactive";
-    virusRainbow.style.backgroundImage = `url('/gameplay_laptop/graphics/${organ.folder}/Virus_${organ.name}_rainbow.png')`;
-    playerBody.appendChild(virusRainbow);
+    // Viruses and meds
+    availableColors.forEach(color => {
+        organHTML += `
+            <div class="organ-layer inactive" 
+                 id="organ-${organ.name}-virus-${color}-${player_id}" 
+                 style="background-image: url('/gameplay_laptop/graphics/${organ.folder}/Virus_${organ.name}_${color}.png')">
+            </div>
+            <div class="organ-layer inactive" 
+                 id="organ-${organ.name}-medicine-${color}-${player_id}" 
+                 style="background-image: url('/gameplay_laptop/graphics/${organ.folder}/Medicine_${organ.name}_${color}.png')">
+            </div>`;
+    });
 
-    // Medicine layers
-    const medicineBlue = document.createElement("div");
-    medicineBlue.className = "organ-layer inactive";
-    medicineBlue.style.backgroundImage = `url('/gameplay_laptop/graphics/${organ.folder}/Medicine_${organ.name}_blue.png')`;
-    playerBody.appendChild(medicineBlue);
+    // rainbow
+    organHTML += `
+        <div class="organ-layer inactive" 
+             id="organ-${organ.name}-virus-rainbow-${player_id}" 
+             style="background-image: url('/gameplay_laptop/graphics/${organ.folder}/Virus_${organ.name}_rainbow.png')">
+        </div>
+        <div class="organ-layer inactive" 
+             id="organ-${organ.name}-medicine-rainbow-${player_id}" 
+             style="background-image: url('/gameplay_laptop/graphics/${organ.folder}/Medicine_${organ.name}_rainbow.png')">
+        </div>
+        <div class="organ-layer inactive" 
+             id="organ-${organ.name}-immune-${player_id}" 
+             style="background-image: url('/gameplay_laptop/graphics/${organ.folder}/Immune_${organ.name}.png')">
+        </div>`;
 
-    const medicineRainbow = document.createElement("div");
-    medicineRainbow.className = "organ-layer inactive";
-    medicineRainbow.style.backgroundImage = `url('/gameplay_laptop/graphics/${organ.folder}/Medicine_${organ.name}_rainbow.png')`;
-    playerBody.appendChild(medicineRainbow);
-
-    // Immune layer
-    const immune = document.createElement("div");
-    immune.className = "organ-layer inactive";
-    immune.style.backgroundImage = `url('/gameplay_laptop/graphics/${organ.folder}/Immune_${organ.name}.png')`;
-    playerBody.appendChild(immune);
+    // injection into player body
+    playerBody.insertAdjacentHTML('beforeend', organHTML);
   });
 
   // Create footer with card count
@@ -185,111 +190,11 @@ function handlePlayerLeave(data) {
   }
 }
 
-/**
- * Handles adding an organ (stack) to a player
- * In the current HTML structure, organs are pre-created as layers
- * This function can log the addition or be used for game logic
- */
-function handleOrganAdd(data) {
-  const target_id = data.target_id;
-  const organ_id = data.organ_id;
-  const color = data.color;
-
-  console.log("Organ added:", target_id, organ_id, color);
-  // Organs are pre-rendered as layers in the player body
-  // Status is controlled through organ-change events
-}
-
-/**
- * Maps organ ID to organ name and layer index
- * Organs: brain (0-5), heart (6-11), stomach (12-17), bone (18-23), uterus (24-29)
- */
-function getOrganLayerIndex(organ_id, layer_type) {
-  const organs = ["brain", "heart", "stomach", "bone", "uterus"];
-  const organ_index = organ_id - 1; // organ_id is 1-based
-  const organ_name = organs[organ_index];
-
-  const base_index = organ_index * 6;
-  
-  // Layer mapping: 0=cover, 1=virus_blue, 2=virus_rainbow, 3=medicine_blue, 4=medicine_rainbow, 5=immune
-  const layer_map = {
-    "healthy": 0,
-    "infected": 1,
-    "vaccinated": 3,
-    "cured": 5
-  };
-
-  return { name: organ_name, index: base_index + (layer_map[layer_type] || 0) };
-}
-
-/**
- * Handles changing an organ's status
- * Toggles visibility of organ layers based on status (healthy, infected, vaccinated, cured)
- */
-function handleOrganChange(data) {
-  const target_id = data.target_id;
-  const organ_id = data.organ_id;
-  const status = data.status;
-
-  const playerBody = document.getElementById(`player-body-${target_id}`);
-  if (!playerBody) {
-    console.warn("Player body not found for:", target_id);
-    return;
-  }
-
-  const organ_info = getOrganLayerIndex(organ_id, status);
-  const layers = playerBody.querySelectorAll(".organ-layer");
-
-  // Hide all layers first
-  layers.forEach(layer => layer.classList.remove("active"));
-  
-  // Activate the correct layer for this status
-  if (organ_info.index < layers.length) {
-    layers[organ_info.index].classList.add("active");
-  }
-
-  console.log("Organ changed:", target_id, organ_id, status);
-}
-
-/**
- * Handles removing an organ from display
- * Resets the organ back to healthy state (hides all layers except cover)
- */
-function handleOrganDelete(data) {
-  const target_id = data.target_id;
-  const organ_id = data.organ_id;
-
-  const playerBody = document.getElementById(`player-body-${target_id}`);
-  if (!playerBody) {
-    console.warn("Player body not found for:", target_id);
-    return;
-  }
-
-  // Reset organ to healthy state by showing only the cover layer
-  const organ_info = getOrganLayerIndex(organ_id, "healthy");
-  const layers = playerBody.querySelectorAll(".organ-layer");
-
-  // Hide all layers for this organ first
-  const organ_index = organ_id - 1;
-  const base_index = organ_index * 6;
-  for (let i = 0; i < 6; i++) {
-    if (base_index + i < layers.length) {
-      layers[base_index + i].classList.remove("active");
-    }
-  }
-
-  // Show only the cover layer (healthy state)
-  if (base_index < layers.length) {
-    layers[base_index].classList.add("active");
-  }
-
-  console.log("Organ deleted (reset to healthy):", target_id, organ_id);
-}
 
 /**
  * Handles game state changes
- * Updates round counter, draw/rejected counts, player statuses, and turn indicators
- */
+ * Updates round counter, draw/rejected counts, player statuses, and turn indicators and stacks
+ **/
 function handleStateChange(data) {
   console.log("handleStateChange received:", data);
   
@@ -337,10 +242,111 @@ function handleStateChange(data) {
       } else {
         console.warn(`Card count element not found: cards-${player_id}`);
       }
+
+      // Update players organs based on stacks
+      if (Array.isArray(playerState.stacks)) {
+        // Get player body element for this player
+        const playerBody = document.getElementById(`player-body-${player_id}`);
+        if (!playerBody) {
+          console.warn(`Player body not found for player ${player_id}`);
+          return;
+        }
+        
+        const colorToOrganMap = {
+          'blue': 'brain',
+          'red': 'heart',
+          'yellow': 'bone',
+          'green': 'stomach',
+          'rainbow': 'uterus'
+        };
+        
+        // First, deactivate ALL organ layers for this player (except covers)
+        // and activate all covers (assume no organs initially)
+        const allLayers = playerBody.querySelectorAll(`[id^="organ-"][id*="-${player_id}"]`);
+        allLayers.forEach(layer => {
+          if (layer.id.includes("cover")) {
+            // Activate all covers initially
+            layer.classList.add("active");
+            layer.classList.remove("inactive");
+          } else {
+            // Deactivate all other layers
+            layer.classList.remove("active");
+            layer.classList.add("inactive");
+          }
+        });
+        
+        // Then process each stack and activate appropriate layers
+        playerState.stacks.forEach((stack) => {
+          const stack_id = stack.stack_id;
+          const color = stack.color;
+          const value = stack.value;
+          const topColor = stack.top_card_color;
+          const organName = colorToOrganMap[color];
+          
+          // Hide cover for this organ since it exists
+          hideOrganCover(player_id, organName);
+
+          switch (value) {
+            case 0: // healthy
+              break;
+            case -1: // infected (card)
+              // Activate virus layer based on top card color
+              const organVirus = playerBody.querySelector(`#organ-${organName}-virus-${topColor}-${player_id}`);
+              if (organVirus) {
+                organVirus.classList.add("active");
+                organVirus.classList.remove("inactive");
+                console.log(`Activated virus layer: organ-${organName}-virus-${topColor}-${player_id}`);
+              } else {
+                console.warn(`Virus layer not found: organ-${organName}-virus-${topColor}-${player_id}`);
+              }
+              break;
+            case 1: // vaccinated (medicine)
+              const medicineSelectorId = `organ-${organName}-medicine-${topColor}-${player_id}`;
+              console.log(`Looking for medicine layer: ${medicineSelectorId}`);
+              const organMedicine = playerBody.querySelector(`#${medicineSelectorId}`);
+              if (organMedicine) {
+                organMedicine.classList.add("active");
+                organMedicine.classList.remove("inactive");
+                console.log(`Activated medicine layer: ${medicineSelectorId}`);
+              } else {
+                console.warn(`Medicine layer not found: ${medicineSelectorId}`);
+              }
+              break;
+            case 2: // immune (medicine)
+              const organImmune = playerBody.querySelector(`#organ-${organName}-immune-${player_id}`);
+              if (organImmune) {
+                organImmune.classList.add("active");
+                organImmune.classList.remove("inactive");
+              }
+              break;
+          }
+        });
+      }
     });
   }
 
   console.log("Game state updated:", data);
+}
+
+function deactivateAllOrganLayers(player_id, organName) {
+  const playerBody = document.getElementById(`player-body-${player_id}`);
+  if (!playerBody) return;
+  const layers = playerBody.querySelectorAll(`[id^="organ-${organName}-"]`);
+  layers.forEach(layer => {
+    if (layer.id.includes("cover")) return; // skip cover
+    layer.classList.remove("active");
+    layer.classList.add("inactive");
+  });
+}
+
+function hideOrganCover(player_id, organName) {
+  const playerBody = document.getElementById(`player-body-${player_id}`);
+  if (!playerBody) return;
+  const cover = playerBody.querySelector(`#organ-${organName}-cover-${player_id}`);
+  if (cover) {
+    cover.classList.remove("active");
+    cover.classList.add("inactive");
+  }
 }
 
 /**
@@ -356,6 +362,67 @@ function handleTurnEnd(data) {
   });
 
   console.log("Turn ended");
+}
+
+/**
+ * Handles game end - displays winner announcement
+ */
+function handleGameEnd(data) {
+  console.log("[GAME_END] Game ended:", data);
+  
+  // Create overlay for winner announcement
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.zIndex = '10000';
+  
+  const winnerBox = document.createElement('div');
+  winnerBox.style.backgroundColor = '#6CBF6C';
+  winnerBox.style.padding = '50px';
+  winnerBox.style.borderRadius = '20px';
+  winnerBox.style.border = '5px solid black';
+  winnerBox.style.textAlign = 'center';
+  
+  const title = document.createElement('h1');
+  title.textContent = 'Game Over!';
+  title.style.fontSize = '72px';
+  title.style.marginBottom = '30px';
+  title.style.color = 'black';
+  title.style.fontWeight = 'bold';
+  
+  const winnerText = document.createElement('h2');
+  winnerText.textContent = `Winner: ${data.winner_name}`;
+  winnerText.style.fontSize = '48px';
+  winnerText.style.marginBottom = '40px';
+  winnerText.style.color = 'black';
+  
+  const backButton = document.createElement('button');
+  backButton.textContent = 'Back to Main';
+  backButton.style.fontSize = '32px';
+  backButton.style.padding = '15px 40px';
+  backButton.style.backgroundColor = 'white';
+  backButton.style.color = 'black';
+  backButton.style.border = '3px solid black';
+  backButton.style.borderRadius = '10px';
+  backButton.style.cursor = 'pointer';
+  backButton.style.fontWeight = 'bold';
+  backButton.onclick = () => {
+    window.location.href = '/home/';
+  };
+  
+  winnerBox.appendChild(title);
+  winnerBox.appendChild(winnerText);
+  winnerBox.appendChild(backButton);
+  overlay.appendChild(winnerBox);
+  document.body.appendChild(overlay);
+  console.log('[GAME_END] Overlay created and appended to body');
 }
 
 /**

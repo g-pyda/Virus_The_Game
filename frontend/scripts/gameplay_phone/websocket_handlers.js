@@ -3,6 +3,8 @@
  * Processes messages from the backend and updates the player's UI accordingly
  */
 
+import { getCard, setCardImage, disableAllPlayButtons } from '/gameplay_telephone/player_deck/cards_dictionary.js';
+
 export default function handleWebsocketMessages(event) {
   let msg;
   try {

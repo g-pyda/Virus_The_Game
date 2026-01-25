@@ -1,0 +1,203 @@
+/* Styles for special card selection pages */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #6CBF6C;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.player-title {
+    font-size: 48px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.instruction {
+    text-align: center;
+    color: #000000;
+    margin-bottom: 30px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.opponent-title {
+    margin-top: 40px;
+}
+
+.organs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+    width: 100%;
+    max-width: 500px;
+}
+
+.organ-slot {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 3px solid #000000;
+    border-radius: 15px;
+    background: #C8C8C8;
+    cursor: pointer;
+    padding: 10px;
+    transition: all 0.2s;
+}
+
+.organ-slot:hover:not(:disabled) {
+    background: #B8B8B8;
+    transform: scale(1.05);
+}
+
+.organ-slot:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.organ-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.player-select {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    margin: 20px 0;
+    width: 100%;
+    max-width: 400px;
+}
+
+.player-button {
+    width: 250px;
+    height: 80px;
+    background-color: #C8C8C8;
+    border: 3px solid #000000;
+    border-radius: 25px;
+    font-size: 32px;
+    font-weight: bold;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.player-button:hover {
+    background-color: #B8B8B8;
+}
+
+.player-button.selected {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.cancel-btn {
+    width: 200px;
+    height: 70px;
+    background-color: #C0C0C0;
+    border: 3px solid #000000;
+    border-radius: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 40px;
+}
+
+.cancel-btn:hover {
+    background-color: #B0B0B0;
+}
+
+.virus-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.virus-card {
+    padding: 15px;
+    border: 3px solid #000000;
+    border-radius: 15px;
+    background: #C8C8C8;
+    cursor: pointer;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.2s;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.virus-card.selected {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.virus-card:hover:not(.selected) {
+    background-color: #B8B8B8;
+}
+
+.confirm-btn {
+    width: 250px;
+    height: 70px;
+    background-color: #4CAF50;
+    border: 3px solid #000000;
+    border-radius: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 20px;
+}
+
+.confirm-btn:hover {
+    background-color: #45a049;
+}
+
+.confirm-btn:disabled {
+    background-color: #ccc;
+    border-color: #666;
+    cursor: not-allowed;
+}
+
+.target-selection {
+    margin-top: 20px;
+    padding: 20px;
+    border: 3px solid #000000;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.target-selection h3 {
+    margin-top: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 15px;
+}
